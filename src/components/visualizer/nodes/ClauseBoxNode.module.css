@@ -1,0 +1,39 @@
+.container {
+  background: var(--color-bg-node);
+  border: 1px solid var(--color-border-clause);
+  border-radius: 4px;
+  min-width: var(--node-min-width);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  height: 28px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-clause);
+}
+
+.clauseType {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.joinIcon {
+  font-size: 12px;
+  color: var(--color-text-inferred);
+  opacity: 0.7;
+}
+
+.label {
+  font-size: 11px;
+  color: var(--color-text-inferred);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
