@@ -1,0 +1,30 @@
+/* styles/variables.css */
+/* CSS Custom Properties — カラー、スペーシング、ノードサイズのグローバル変数 */
+
+:root {
+  /* カラーパレット */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-node: #ffffff;
+  --color-bg-unresolved: #f0f0f0;
+  --color-border-node: #d0d5dd;
+  --color-border-unresolved: #98a2b3;
+  --color-border-clause: #e4e7ec;
+  --color-text-primary: #101828;
+  --color-text-secondary: #475467;
+  --color-text-inferred: #667085;
+  --color-accent: #2563eb;
+  --color-highlight: #f59e0b;
+
+  /* スペーシング */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* ノードサイズ */
+  --node-title-height: 32px;
+  --node-border-radius: 8px;
+  --node-min-width: 180px;
+}
