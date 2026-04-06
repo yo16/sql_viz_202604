@@ -1,0 +1,63 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px var(--spacing-sm);
+  min-width: var(--node-min-width);
+  height: 28px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-node);
+  border-bottom: 1px solid var(--color-border-clause);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.container:hover {
+  background: var(--color-bg-secondary);
+}
+
+.inferred {
+  font-style: italic;
+  background: rgba(102, 112, 133, 0.06);
+  color: var(--color-text-inferred);
+}
+
+.propagated {
+  /* 通常テキストと同じだが、starIcon で視覚的に区別 */
+}
+
+.highlighted {
+  background: rgba(245, 158, 11, 0.12);
+  outline: 1px solid var(--color-highlight);
+}
+
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.starIcon {
+  font-size: 10px;
+  color: var(--color-text-inferred);
+  margin-left: 2px;
+  vertical-align: super;
+}
+
+.condition {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.handle {
+  width: 6px;
+  height: 6px;
+  background: var(--color-border-node);
+  border: none;
+}
