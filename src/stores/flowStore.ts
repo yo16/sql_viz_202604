@@ -13,6 +13,7 @@ import type {
 } from '@/types/flow';
 import { recalculateLayout } from '@/layout/recalculateLayout';
 import { LAYOUT } from '@/layout/layoutConstants';
+import { useLineageStore } from '@/stores/lineageStore';
 
 /**
  * 指定ノードの全子孫IDを再帰的に収集する。
@@ -266,6 +267,29 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           }
         }
       }
+
+      // カラムレベルリネージュエッジを生成（各カラムの dependencies から）
+      for (const [columnName, col] of table.columns) {
+        for (const dep of col.dependencies) {
+          if (tables.has(dep.sourceTableId)) {
+            const colEdgeId = `col-edge-${dep.sourceTableId}-${tableId}-${dep.sourceColumn}-${columnName}`;
+            if (!edgeIdSet.has(colEdgeId)) {
+              edgeIdSet.add(colEdgeId);
+              edges.push({
+                id: colEdgeId,
+                source: dep.sourceTableId,
+                target: tableId,
+                type: 'lineage',
+                data: {
+                  dependencyType: 'column_lineage',
+                  isHighlighted: false,
+                  isDimmed: false,
+                },
+              });
+            }
+          }
+        }
+      }
     }
 
     // React Flow v12 要件: 親ノードは子ノードより配列の前に配置する
@@ -312,10 +336,84 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   highlightLineage: (tableId: string, columnName: string) => {
-    set({ highlightPath: { tableId, columnName } });
+    // リネージュパスを辿り、関連エッジを特定してハイライト/dim状態を更新する。
+    // F2-3: カラムレベルリネージュ対応
+    const state = get();
+    const tables = useLineageStore.getState().tables;
+
+    // ハイライト対象のエッジIDを収集する（上流方向へ再帰的に辿る）
+    const highlightedEdgeIds = new Set<string>();
+
+    function traceUpstream(currentTableId: string, currentColumn: string): void {
+      const table = tables.get(currentTableId);
+      if (!table) return;
+
+      const col = table.columns.get(currentColumn);
+      if (!col) return;
+
+      for (const dep of col.dependencies) {
+        const edgeId = `col-edge-${dep.sourceTableId}-${currentTableId}-${dep.sourceColumn}-${currentColumn}`;
+        if (!highlightedEdgeIds.has(edgeId)) {
+          highlightedEdgeIds.add(edgeId);
+          traceUpstream(dep.sourceTableId, dep.sourceColumn);
+        }
+      }
+    }
+
+    traceUpstream(tableId, columnName);
+
+    // ハイライト対象エッジが存在しない場合はhighlightPathを設定しない（ノード/エッジをdimさせない）
+    if (highlightedEdgeIds.size === 0) {
+      return;
+    }
+
+    // エッジを更新: ハイライト対象はisHighlighted=true、それ以外はisDimmed=true
+    const hasHighlight = highlightedEdgeIds.size > 0;
+    const updatedEdges = state.edges.map((edge) => {
+      const edgeData = edge.data as { dependencyType: string; isHighlighted: boolean; isDimmed?: boolean } | undefined;
+      const depType = edgeData?.dependencyType ?? 'table_dependency';
+
+      if (depType === 'table_dependency') {
+        // table_dependency エッジ: ハイライト発動中はdimにする
+        return {
+          ...edge,
+          data: {
+            ...edgeData,
+            isHighlighted: false,
+            isDimmed: hasHighlight,
+          },
+        };
+      }
+
+      // column_lineage エッジ: ハイライト対象ならisHighlighted=true
+      const isHighlighted = highlightedEdgeIds.has(edge.id);
+      return {
+        ...edge,
+        data: {
+          ...edgeData,
+          isHighlighted,
+          isDimmed: hasHighlight && !isHighlighted,
+        },
+      };
+    });
+
+    set({ highlightPath: { tableId, columnName }, edges: updatedEdges });
   },
 
   clearHighlight: () => {
-    set({ highlightPath: null });
+    const state = get();
+    // 全エッジのハイライト/dim状態をリセット
+    const updatedEdges = state.edges.map((edge) => {
+      const edgeData = edge.data as { dependencyType: string; isHighlighted: boolean; isDimmed?: boolean } | undefined;
+      return {
+        ...edge,
+        data: {
+          ...edgeData,
+          isHighlighted: false,
+          isDimmed: false,
+        },
+      };
+    });
+    set({ highlightPath: null, edges: updatedEdges });
   },
 }));

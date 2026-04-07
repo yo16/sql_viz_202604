@@ -32,6 +32,10 @@
   outline: 1px solid var(--color-highlight);
 }
 
+.dimmed {
+  opacity: 0.35;
+}
+
 .name {
   flex: 1;
   overflow: hidden;

@@ -3,7 +3,7 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ColumnItemNodeData } from '@/types/flow';
-import { useFlowStore } from '@/stores/flowStore';
+import { useLineageHighlight } from '@/hooks/useLineageHighlight';
 import styles from './ColumnItemNode.module.css';
 
 /**
@@ -18,26 +18,25 @@ import styles from './ColumnItemNode.module.css';
  * - propagated: 通常テキスト + 小アイコン *
  *
  * クリック動作: ハイライトのトグル（再クリックで解除）
+ * useLineageHighlight フックと連携してリネージュパスをハイライト表示する。
  */
 function ColumnItemNodeComponent({ data, id }: NodeProps) {
   const nodeData = data as unknown as ColumnItemNodeData;
-  const { displayName, certainty, isHighlighted, conditionText } = nodeData;
+  const { displayName, certainty, conditionText } = nodeData;
 
-  const highlightLineage = useFlowStore((s) => s.highlightLineage);
-  const clearHighlight = useFlowStore((s) => s.clearHighlight);
-  const highlightPath = useFlowStore((s) => s.highlightPath);
+  const { handleColumnClick, highlightPath } = useLineageHighlight();
+  // highlightPath から isHighlighted を動的計算する（ColumnItemNodeData.isHighlighted に依存しない）
+  const parts = id.split(':');
+  const tableId = parts[0] ?? id;
+  const isHighlighted =
+    highlightPath?.tableId === tableId &&
+    highlightPath?.columnName === displayName;
+  // ハイライト発動中で自分が対象外の場合はdim
+  const isDimmed = highlightPath !== null && !isHighlighted;
 
   const handleClick = useCallback(() => {
-    const parts = id.split(':');
-    const tableId = parts[0] ?? id;
-
-    // トグル: 同じカラムが既にハイライト中なら解除
-    if (highlightPath?.tableId === tableId && highlightPath?.columnName === displayName) {
-      clearHighlight();
-    } else {
-      highlightLineage(tableId, displayName);
-    }
-  }, [id, displayName, highlightPath, highlightLineage, clearHighlight]);
+    handleColumnClick(tableId, displayName);
+  }, [tableId, displayName, handleColumnClick]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -51,6 +50,7 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
     certainty === 'inferred' ? styles.inferred : '',
     certainty === 'propagated' ? styles.propagated : '',
     isHighlighted ? styles.highlighted : '',
+    isDimmed ? styles.dimmed : '',
   ].filter(Boolean).join(' ');
 
   return (
