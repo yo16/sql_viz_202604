@@ -222,6 +222,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     const nodes: FlowNode[] = [];
     const edges: FlowEdge[] = [];
+    const edgeIdSet = new Set<string>();
     const state = get();
     const displayModes = new Map(state.displayModes);
 
@@ -249,13 +250,20 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       }
 
       // テーブル間のエッジを生成（dependsOn から）
+      // 重複エッジ防止のため edgeIds Set で管理
       for (const depTableId of table.dependsOn) {
         if (tables.has(depTableId)) {
-          edges.push({
-            id: `edge-${depTableId}-${tableId}`,
-            source: depTableId,
-            target: tableId,
-          });
+          const edgeId = `edge-${depTableId}-${tableId}`;
+          if (!edgeIdSet.has(edgeId)) {
+            edgeIdSet.add(edgeId);
+            edges.push({
+              id: edgeId,
+              source: depTableId,  // 上流
+              target: tableId,     // 下流
+              type: 'lineage',
+              data: { dependencyType: 'table_dependency', isHighlighted: false },
+            });
+          }
         }
       }
     }
