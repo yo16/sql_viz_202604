@@ -11,6 +11,40 @@ import type {
   QueryBoxNodeData,
   UnresolvedBoxNodeData,
 } from '@/types/flow';
+import { recalculateLayout } from '@/layout/recalculateLayout';
+
+/**
+ * 指定ノードの全子孫IDを再帰的に収集する。
+ * React Flow の parentId 関係を辿って親→子の依存を見つける。
+ */
+function collectDescendantIds(nodes: Node[], rootId: string): Set<string> {
+  const descendants = new Set<string>();
+
+  // 親ID → 子IDリストのマップを構築
+  const childrenMap = new Map<string, string[]>();
+  for (const node of nodes) {
+    if (node.parentId) {
+      const list = childrenMap.get(node.parentId) ?? [];
+      list.push(node.id);
+      childrenMap.set(node.parentId, list);
+    }
+  }
+
+  // BFSで子孫を収集
+  const queue: string[] = [rootId];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const children = childrenMap.get(id) ?? [];
+    for (const childId of children) {
+      if (!descendants.has(childId)) {
+        descendants.add(childId);
+        queue.push(childId);
+      }
+    }
+  }
+
+  return descendants;
+}
 
 /**
  * flowStore — React Flow のノード/エッジと表示状態を管理。
@@ -99,18 +133,33 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const next: DisplayMode = current === 'detail' ? 'compact' : 'detail';
     displayModes.set(tableId, next);
 
-    // ノードのdisplayModeを更新
-    const nodes = state.nodes.map((node) => {
+    // 対象ノードの全子孫IDを再帰的に収集
+    const descendantIds = collectDescendantIds(state.nodes, tableId);
+
+    // ノードを更新:
+    // - 対象ノード: displayMode を切替
+    // - 子孫ノード: compact なら hidden=true, detail なら hidden=false
+    const isNowCompact = next === 'compact';
+    const updatedNodes = state.nodes.map((node) => {
       if (node.id === tableId) {
         return {
           ...node,
           data: { ...node.data, displayMode: next },
         };
       }
+      if (descendantIds.has(node.id)) {
+        return {
+          ...node,
+          hidden: isNowCompact,
+        };
+      }
       return node;
     });
 
-    set({ nodes, displayModes });
+    // recalculateLayout でボトムアップにサイズ再計算
+    const recalculated = recalculateLayout(updatedNodes);
+
+    set({ nodes: recalculated as typeof state.nodes, displayModes });
   },
 
   highlightLineage: (tableId: string, columnName: string) => {
