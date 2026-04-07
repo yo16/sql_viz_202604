@@ -24,7 +24,10 @@
 }
 
 .propagated {
-  /* 通常テキストと同じだが、starIcon で視覚的に区別 */
+  /* SELECT * 由来カラム: 薄い紫背景 + 左ボーダーで明示 */
+  background: rgba(124, 58, 237, 0.05);
+  border-left: 2px solid rgba(124, 58, 237, 0.35);
+  color: var(--color-text-secondary);
 }
 
 .highlighted {
@@ -43,11 +46,26 @@
   white-space: nowrap;
 }
 
-.starIcon {
+.starBadge {
+  /* SELECT * 由来バッジ: 紫系のアスタリスク */
+  flex-shrink: 0;
   font-size: 10px;
+  font-weight: 700;
+  color: rgba(124, 58, 237, 0.7);
+  margin-left: 3px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.inferredBadge {
+  /* 推定カラムバッジ: グレーのクエスチョン */
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--color-text-inferred);
-  margin-left: 2px;
-  vertical-align: super;
+  margin-left: 3px;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .condition {

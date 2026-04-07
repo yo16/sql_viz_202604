@@ -10,6 +10,8 @@ import type {
   DisplayMode,
   QueryBoxNodeData,
   UnresolvedBoxNodeData,
+  ClauseBoxNodeData,
+  ColumnItemNodeData,
 } from '@/types/flow';
 import { recalculateLayout } from '@/layout/recalculateLayout';
 import { LAYOUT } from '@/layout/layoutConstants';
@@ -78,6 +80,70 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
   }
 
   return result;
+}
+
+/**
+ * TableNode の SELECT句カラムから ClauseBoxNode + ColumnItemNode を生成する。
+ * 設計参照: doc/design/component-design.md セクション3.2, 3.3
+ *
+ * @param tableId - 親テーブルの ID
+ * @param table - TableNode
+ * @param clauseParentId - ClauseBoxNode の parentId（通常は tableId）
+ * @param startY - ClauseBoxNode の配置開始Y座標
+ * @param nodes - 生成したノードを追加するための配列（出力用）
+ * @returns 生成したノード群の合計高さ
+ */
+function buildSelectClauseNodes(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const columns = Array.from(table.columns.values());
+  if (columns.length === 0) return 0;
+
+  const clauseId = `${tableId}__clause__SELECT`;
+  const clauseHeaderH = LAYOUT.CLAUSE_HEADER_HEIGHT;
+  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
+    clauseType: 'SELECT',
+    label: 'SELECT',
+  };
+  nodes.push({
+    id: clauseId,
+    type: 'clauseBox',
+    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
+    data: clauseData,
+    parentId: clauseParentId,
+    extent: 'parent',
+    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    height: clauseHeaderH + columns.length * LAYOUT.COLUMN_ITEM_HEIGHT,
+  } as FlowNode);
+
+  // 各カラムを ColumnItemNode として ClauseBoxNode の子に配置
+  columns.forEach((col, idx) => {
+    const colNodeId = `${tableId}:${col.columnName}`;
+    const colData: ColumnItemNodeData & Record<string, unknown> = {
+      displayName: col.columnName,
+      sourceTable: col.dependencies[0]?.sourceTableId ?? null,
+      exprType: col.exprType,
+      certainty: col.certainty,
+      conditionText: null,
+      isFromStar: col.isFromStar,
+    };
+    nodes.push({
+      id: colNodeId,
+      type: 'columnItem',
+      position: { x: 0, y: clauseHeaderH + idx * LAYOUT.COLUMN_ITEM_HEIGHT },
+      data: colData,
+      parentId: clauseId,
+      extent: 'parent',
+      width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+      height: LAYOUT.COLUMN_ITEM_HEIGHT,
+    } as FlowNode);
+  });
+
+  return clauseHeaderH + columns.length * LAYOUT.COLUMN_ITEM_HEIGHT;
 }
 
 /**
@@ -197,6 +263,12 @@ function buildQueryBoxNodes(
       const subHeight = subNode.height ?? LAYOUT.QUERY_BOX_MIN_HEIGHT;
       whereSubY += subHeight + LAYOUT.CHILD_GAP_VERTICAL;
     }
+  }
+
+  // detail モードの場合は SELECT句の ClauseBoxNode + ColumnItemNode を生成
+  // CTE/サブクエリがない場合のみ（ネストがある場合は内部クエリにカラムがある）
+  if (dm === 'detail' && table.ctes.length === 0 && table.fromSubqueries.length === 0 && table.whereSubqueries.length === 0) {
+    buildSelectClauseNodes(tableId, table, tableId, LAYOUT.PADDING_TOP, nodes);
   }
 }
 
