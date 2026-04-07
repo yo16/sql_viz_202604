@@ -71,6 +71,16 @@ export type FlowNodeData =
 /** カスタムノード型 */
 export type FlowNode = Node<FlowNodeData & Record<string, unknown>>;
 
+/** LineageEdge のデータ型 */
+export interface LineageEdgeData {
+  /** 依存関係の種別 */
+  dependencyType: 'table_dependency' | 'column_lineage';
+  /** ハイライト状態（このエッジがハイライトパス上にあるか） */
+  isHighlighted: boolean;
+  /** フォーカス効果: ハイライト発動中で、このエッジが対象外のためフェードすべきか */
+  isDimmed?: boolean;
+}
+
 /** カスタムエッジ型 */
 export type FlowEdge = Edge;
 

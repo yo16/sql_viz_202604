@@ -20,6 +20,7 @@ import { QueryBoxNode } from './nodes/QueryBoxNode';
 import { ClauseBoxNode } from './nodes/ClauseBoxNode';
 import { ColumnItemNode } from './nodes/ColumnItemNode';
 import { UnresolvedBoxNode } from './nodes/UnresolvedBoxNode';
+import { LineageEdge } from './edges/LineageEdge';
 import styles from './FlowCanvas.module.css';
 
 const nodeTypes = {
@@ -27,6 +28,10 @@ const nodeTypes = {
   clauseBox: ClauseBoxNode,
   columnItem: ColumnItemNode,
   unresolvedBox: UnresolvedBoxNode,
+};
+
+const edgeTypes = {
+  lineage: LineageEdge,
 };
 
 /**
@@ -82,6 +87,7 @@ export function FlowCanvas() {
         nodes={localNodes}
         edges={localEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onPaneClick={handleCanvasClick}

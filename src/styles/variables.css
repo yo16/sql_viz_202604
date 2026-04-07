@@ -16,6 +16,11 @@
   --color-accent: #2563eb;
   --color-highlight: #f59e0b;
 
+  /* エッジカラー */
+  --color-edge-default: #d0d5dd;
+  --color-edge-highlighted: #2563eb;
+  --color-edge-column-faded: rgba(208, 213, 221, 0.25);
+
   /* スペーシング */
   --spacing-xs: 4px;
   --spacing-sm: 8px;

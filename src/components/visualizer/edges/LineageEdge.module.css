@@ -1,0 +1,39 @@
+/* LineageEdge.module.css */
+
+/* 基底スタイル */
+.edge {
+  fill: none;
+  stroke-width: 1.5px;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+/* テーブル依存関係エッジ: 実線・薄グレー */
+.tableDependency {
+  stroke: var(--color-edge-default);
+  stroke-dasharray: none;
+  opacity: 1;
+}
+
+/* カラムリネージュエッジ: 非ハイライト時はフェード */
+.columnLineage {
+  stroke: var(--color-edge-column-faded);
+  stroke-dasharray: 4 3;
+  opacity: 0.3;
+}
+
+/* ハイライト状態: 色付き・太め */
+.highlighted {
+  stroke: var(--color-edge-highlighted);
+  stroke-width: 2.5px;
+  opacity: 1;
+}
+
+/* columnLineage かつハイライト時 */
+.columnLineage.highlighted {
+  stroke-dasharray: none;
+}
+
+/* フォーカス効果: ハイライト発動中で対象外のエッジを更に薄くする */
+.dimmed {
+  opacity: 0.15;
+}
