@@ -220,6 +220,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   syncFromLineage: (tables: Map<string, TableNode>) => {
     // TableNode マップから React Flow ノード/エッジを生成する。
     // F1-8: CTE・FROMサブクエリ・WHERE IN/EXISTSサブクエリを親QueryBoxNode内にネスト表示する。
+    // F2-2: 未登録テーブル（isRegistered=false）は unresolvedBox として、
+    //        登録済みテーブル（isRegistered=true）は queryBox として生成する。
+    //        lineageStore.addQuery で新クエリが追加され unresolved → registered に変わった場合、
+    //        次の syncFromLineage 呼び出しで自動的に unresolvedBox → queryBox に置換される。
 
     const nodes: FlowNode[] = [];
     const edges: FlowEdge[] = [];
