@@ -1,12 +1,13 @@
-import styles from "./page.module.css";
+import { MainView } from '@/components/layout/MainView';
 
+/**
+ * メインページ。
+ *
+ * Server Component として静的シェルを提供し、
+ * インタラクティブな MainView は "use client" で分離されている。
+ *
+ * 設計参照: doc/design/component-design.md セクション1 (コンポーネントツリー)
+ */
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <h1>SQL Visualizer</h1>
-        <p>SQL lineage visualizer</p>
-      </main>
-    </div>
-  );
+  return <MainView />;
 }
