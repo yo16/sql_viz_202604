@@ -16,7 +16,18 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useFlowStore } from '@/stores/flowStore';
+import { QueryBoxNode } from './nodes/QueryBoxNode';
+import { ClauseBoxNode } from './nodes/ClauseBoxNode';
+import { ColumnItemNode } from './nodes/ColumnItemNode';
+import { UnresolvedBoxNode } from './nodes/UnresolvedBoxNode';
 import styles from './FlowCanvas.module.css';
+
+const nodeTypes = {
+  queryBox: QueryBoxNode,
+  clauseBox: ClauseBoxNode,
+  columnItem: ColumnItemNode,
+  unresolvedBox: UnresolvedBoxNode,
+};
 
 /**
  * React Flow メインキャンバスコンポーネント。
@@ -70,6 +81,7 @@ export function FlowCanvas() {
       <ReactFlow
         nodes={localNodes}
         edges={localEdges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onPaneClick={handleCanvasClick}
