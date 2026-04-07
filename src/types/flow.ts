@@ -45,8 +45,6 @@ export interface ColumnItemNodeData {
   exprType: SelectColumn['exprType'];
   /** カラムの確度 */
   certainty: Certainty;
-  /** リネージュハイライト中かどうか */
-  isHighlighted: boolean;
   /** WHERE/HAVING等の条件テキスト（条件ノードの場合） */
   conditionText: string | null;
 }

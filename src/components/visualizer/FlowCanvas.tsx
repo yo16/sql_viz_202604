@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useFlowStore } from '@/stores/flowStore';
+import { useLineageHighlight } from '@/hooks/useLineageHighlight';
 import { QueryBoxNode } from './nodes/QueryBoxNode';
 import { ClauseBoxNode } from './nodes/ClauseBoxNode';
 import { ColumnItemNode } from './nodes/ColumnItemNode';
@@ -77,9 +78,7 @@ export function FlowCanvas() {
     []
   );
 
-  const handleCanvasClick = useCallback(() => {
-    useFlowStore.getState().clearHighlight();
-  }, []);
+  const { handleCanvasClick } = useLineageHighlight();
 
   return (
     <div className={styles.container}>
