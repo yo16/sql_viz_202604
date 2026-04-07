@@ -9,20 +9,22 @@ import styles from './ColumnItemNode.module.css';
 /**
  * カラム項目ノード — カラム1件を表す最小単位ノード。
  *
- * 対応機能要件: F1-3 (単一クエリの可視化), F2-3 (リネージュ追跡), F2-4 (未登録テーブルカラム推定)
+ * 対応機能要件: F1-3 (単一クエリの可視化), F2-3 (リネージュ追跡), F2-4 (未登録テーブルカラム推定), F2-5 (SELECT * 伝播表示)
  * 設計参照: doc/design/component-design.md セクション3.3
  *
  * certainty に応じたスタイル差異:
  * - confirmed: 通常テキスト
  * - inferred: イタリック + 薄い背景色
- * - propagated: 通常テキスト + 小アイコン *
+ * - propagated: 薄い紫背景 + 左ボーダー + `*` バッジ（SELECT * 由来を明示）
+ *
+ * isFromStar=true の場合: certainty=propagated と同義。ツールチップで由来を説明。
  *
  * クリック動作: ハイライトのトグル（再クリックで解除）
  * useLineageHighlight フックと連携してリネージュパスをハイライト表示する。
  */
 function ColumnItemNodeComponent({ data, id }: NodeProps) {
   const nodeData = data as unknown as ColumnItemNodeData;
-  const { displayName, certainty, conditionText } = nodeData;
+  const { displayName, certainty, conditionText, isFromStar } = nodeData;
 
   const { handleColumnClick, highlightPath } = useLineageHighlight();
   // highlightPath から isHighlighted を動的計算する（ColumnItemNodeData.isHighlighted に依存しない）
@@ -33,6 +35,9 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
     highlightPath?.columnName === displayName;
   // ハイライト発動中で自分が対象外の場合はdim
   const isDimmed = highlightPath !== null && !isHighlighted;
+
+  // SELECT * 由来かどうか（certainty または isFromStar で判定）
+  const isPropagated = certainty === 'propagated' || isFromStar === true;
 
   const handleClick = useCallback(() => {
     handleColumnClick(tableId, displayName);
@@ -48,10 +53,14 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
   const containerClass = [
     styles.container,
     certainty === 'inferred' ? styles.inferred : '',
-    certainty === 'propagated' ? styles.propagated : '',
+    isPropagated ? styles.propagated : '',
     isHighlighted ? styles.highlighted : '',
     isDimmed ? styles.dimmed : '',
   ].filter(Boolean).join(' ');
+
+  const titleText = isPropagated
+    ? `SELECT * から伝播: ${displayName}`
+    : conditionText ?? undefined;
 
   return (
     <div
@@ -60,13 +69,23 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
+      title={titleText}
     >
       <Handle type="target" position={Position.Left} className={styles.handle} />
       <span className={styles.name}>
         {displayName}
-        {certainty === 'propagated' && <span className={styles.starIcon}>*</span>}
       </span>
-      {conditionText && (
+      {isPropagated && (
+        <span className={styles.starBadge} aria-label="SELECT * 由来">
+          *
+        </span>
+      )}
+      {certainty === 'inferred' && (
+        <span className={styles.inferredBadge} aria-label="推定カラム">
+          ?
+        </span>
+      )}
+      {conditionText && !isPropagated && (
         <span className={styles.condition} title={conditionText}>
           {conditionText}
         </span>

@@ -47,6 +47,8 @@ export interface ColumnItemNodeData {
   certainty: Certainty;
   /** WHERE/HAVING等の条件テキスト（条件ノードの場合） */
   conditionText: string | null;
+  /** SELECT * による伝播カラムかどうか（F2-5） */
+  isFromStar: boolean;
 }
 
 /** UnresolvedBoxNode のデータ型 */
