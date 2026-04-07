@@ -20,10 +20,15 @@ export interface LineageState {
 export interface LineageActions {
   /**
    * パース結果を追加してリネージュグラフを再構築。
-   * 1. ParsedQuery から TableNode を生成
-   * 2. 未登録テーブルとの一致チェック→置換
-   * 3. inferUnregisteredColumns 再実行
-   * 4. propagateSelectStar 再実行
+   *
+   * 処理フロー（設計参照: doc/design/lineage-model.md セクション5）:
+   * 1. ParsedQuery を queries マップに追加
+   * 2. 全クエリからリネージュグラフを再構築（buildLineageGraph）
+   *    - 新クエリの targetTable 名が既存の未登録テーブル名と一致する場合、
+   *      registerTables 内で isRegistered: true のノードが上書き登録され、
+   *      未登録参照が自動的に解消される（F2-2: 未認識テーブルの置換）
+   * 3. 未登録テーブルのカラムを推定（inferUnregisteredColumns 再実行）
+   * 4. SELECT * のカラムを上流から伝播（propagateSelectStar 再実行）
    */
   addQuery: (parsed: ParsedQuery) => void;
 
