@@ -80,3 +80,24 @@
   color: var(--color-text-inferred);
   padding-top: 2px;
 }
+
+/* ネスト上限超過による省略表示 (F1-8) */
+.omitted {
+  opacity: 0.6;
+  border-style: dashed;
+  min-width: 120px;
+}
+
+.omittedBody {
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.omittedMessage {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  white-space: nowrap;
+}

@@ -19,6 +19,12 @@ export interface QueryBoxNodeData {
   compactColumns: string[];
   /** このノードが登録済みかどうか */
   isRegistered: boolean;
+  /** ネスト上限超過により省略されているかどうか (F1-8) */
+  isOmitted?: boolean;
+  /** 省略表示メッセージ */
+  omitMessage?: string;
+  /** ネストの深さ（ルート = 0） */
+  nestDepth?: number;
 }
 
 /** ClauseBoxNode のデータ型 */
