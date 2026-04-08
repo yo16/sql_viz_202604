@@ -117,6 +117,7 @@ function buildSelectClauseNodes(
     data: clauseData,
     parentId: clauseParentId,
     extent: 'parent',
+    draggable: false,
     width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
     height: clauseHeaderH + columns.length * LAYOUT.COLUMN_ITEM_HEIGHT,
   } as FlowNode);
@@ -139,6 +140,7 @@ function buildSelectClauseNodes(
       data: colData,
       parentId: clauseId,
       extent: 'parent',
+      draggable: false,
       width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
       height: LAYOUT.COLUMN_ITEM_HEIGHT,
     } as FlowNode);
