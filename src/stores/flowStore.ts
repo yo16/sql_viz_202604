@@ -14,6 +14,7 @@ import type {
   ColumnItemNodeData,
 } from '@/types/flow';
 import { recalculateLayout } from '@/layout/recalculateLayout';
+import { arrangeTableNodes } from '@/layout/tableFlowLayout';
 import { LAYOUT } from '@/layout/layoutConstants';
 import { useLineageStore } from '@/stores/lineageStore';
 
@@ -370,9 +371,20 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     // React Flow v12 要件: 親ノードは子ノードより配列の前に配置する
     const sortedNodes = sortNodesParentFirst(nodes);
-    const recalculated = recalculateLayout(sortedNodes as Node[]);
+    // 親サイズを先に確定させる（arrangeTableNodes が幅を参照するため）
+    const recalculated = recalculateLayout(sortedNodes as Node[]) as FlowNode[];
 
-    set({ nodes: recalculated as FlowNode[], edges, displayModes });
+    // ルートレベルのテーブルノード（parentId を持たない）を依存関係に基づき左→右に配置
+    // bd-sql_viz_202604_2-z0e: syncFromLineage から arrangeTableNodes を呼ぶ修正
+    const rootNodes = recalculated.filter((n) => n.parentId === undefined);
+    const nonRootNodes = recalculated.filter((n) => n.parentId !== undefined);
+    const tableDependencies = edges
+      .filter((e) => e.data?.dependencyType === 'table_dependency')
+      .map((e) => ({ source: e.source, target: e.target }));
+    const arrangedRoots = arrangeTableNodes(rootNodes as Node[], tableDependencies) as FlowNode[];
+    const finalNodes = [...arrangedRoots, ...nonRootNodes];
+
+    set({ nodes: finalNodes, edges, displayModes });
   },
 
   toggleDisplayMode: (tableId: string) => {
