@@ -132,6 +132,16 @@ export function createTableNode(query: ParsedQuery): TableNode {
       }))
     : [];
 
+  // カラム情報を populate する（CTE / サブクエリ内部の TableNode も含めて全て）
+  // bd-sql_viz_202604_2-2ml: 以前は空 Map で、buildColumnDependencies がトップレベル
+  // のみ埋めていたため CTE 内部にカラムが設定されず QueryBox が空表示になっていた。
+  const aliasMap = buildAliasMap(query.from);
+  const columns = new Map<string, ColumnNode>();
+  for (const col of query.select.columns) {
+    const columnNode = createColumnNode(col, tableId, aliasMap);
+    columns.set(columnNode.columnName, columnNode);
+  }
+
   return {
     id: tableId,
     name: query.targetTable,
@@ -139,7 +149,7 @@ export function createTableNode(query: ParsedQuery): TableNode {
     isRegistered: true,
     queryType: query.queryType,
     queryId: query.queryId,
-    columns: new Map(),
+    columns,
     dependsOn,
     ctes,
     fromSubqueries,
