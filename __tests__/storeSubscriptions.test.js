@@ -138,12 +138,16 @@ test('multiple addQuery calls update flowStore', () => {
     const q1 = makePQ({ queryId: 'q1', targetTable: 'mid', queryType: 'ctas',
       from: { tables: [{ name: 'raw', alias: null }], joins: [], subqueries: [] } });
     useLineageStore.getState().addQuery(q1);
-    assert(useFlowStore.getState().nodes.length === 2, '2 nodes after q1');
+    // ルートテーブルノード (parentId無し) は mid + raw の 2つ
+    // 内部に FROM clauseBox 等が生成されるので全体数は 2 より多い
+    const rootsAfterQ1 = useFlowStore.getState().nodes.filter((n: any) => n.parentId === undefined);
+    assert(rootsAfterQ1.length === 2, '2 root nodes after q1, got ' + rootsAfterQ1.length);
 
     const q2 = makePQ({ queryId: 'q2', targetTable: 'final', queryType: 'ctas',
       from: { tables: [{ name: 'mid', alias: null }], joins: [], subqueries: [] } });
     useLineageStore.getState().addQuery(q2);
-    assert(useFlowStore.getState().nodes.length === 3, '3 nodes after q2');
+    const rootsAfterQ2 = useFlowStore.getState().nodes.filter((n: any) => n.parentId === undefined);
+    assert(rootsAfterQ2.length === 3, '3 root nodes after q2, got ' + rootsAfterQ2.length);
   } finally {
     unsub();
   }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { useLineageStore } from '@/stores/lineageStore';
 import styles from './FileDropZone.module.css';
 
 export interface FileContent {
@@ -30,6 +31,14 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resetCounter = useLineageStore((s) => s.resetCounter);
+
+  // lineageStore.resetAll() が呼ばれたらファイルリストとエラーをクリア
+  useEffect(() => {
+    setFiles([]);
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [resetCounter]);
 
   const readFiles = useCallback(async (fileList: FileList | File[]): Promise<FileContent[]> => {
     const sqlFiles: File[] = [];
