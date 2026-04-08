@@ -150,6 +150,86 @@ function buildSelectClauseNodes(
 }
 
 /**
+ * FROM句 ClauseBoxNode を1件生成する（ヘッダのみ、子カラムなし）。
+ * @returns 生成した clauseBox の高さ。FROM情報がない場合は 0 を返す。
+ */
+function buildFromClauseNode(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const from = table.clauses.from;
+  if (!from || from.tables.length === 0) return 0;
+
+  // ラベル組み立て: テーブル名（エイリアスがあれば "name AS alias"）＋ JOIN 情報
+  const tableLabels = from.tables.map((t) =>
+    t.alias ? `${t.name} ${t.alias}` : t.name
+  );
+  const joinLabels = from.joins.map((j) => {
+    const aliasPart = j.alias ? ` ${j.alias}` : '';
+    return `${j.joinType} JOIN ${j.table}${aliasPart} ON ${j.onConditionText}`;
+  });
+  const label = [tableLabels.join(', '), ...joinLabels].join(' ');
+
+  const clauseId = `${tableId}__clause__FROM`;
+  const clauseHeaderH = LAYOUT.CLAUSE_HEADER_HEIGHT;
+  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
+    clauseType: 'FROM',
+    label,
+  };
+  nodes.push({
+    id: clauseId,
+    type: 'clauseBox',
+    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
+    data: clauseData,
+    parentId: clauseParentId,
+    extent: 'parent',
+    draggable: false,
+    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    height: clauseHeaderH,
+  } as FlowNode);
+
+  return clauseHeaderH;
+}
+
+/**
+ * WHERE句 ClauseBoxNode を1件生成する（ヘッダのみ、子カラムなし）。
+ * @returns 生成した clauseBox の高さ。WHERE が無い場合は 0 を返す。
+ */
+function buildWhereClauseNode(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const where = table.clauses.where;
+  if (!where) return 0;
+
+  const clauseId = `${tableId}__clause__WHERE`;
+  const clauseHeaderH = LAYOUT.CLAUSE_HEADER_HEIGHT;
+  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
+    clauseType: 'WHERE',
+    label: where.conditionText,
+  };
+  nodes.push({
+    id: clauseId,
+    type: 'clauseBox',
+    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
+    data: clauseData,
+    parentId: clauseParentId,
+    extent: 'parent',
+    draggable: false,
+    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    height: clauseHeaderH,
+  } as FlowNode);
+
+  return clauseHeaderH;
+}
+
+/**
  * TableNode から QueryBoxNode（子ノード）を再帰的に生成する。
  * CTE / FROM サブクエリ / WHERE サブクエリを親QueryBoxNode内にネスト表示する。
  * 設計参照: doc/design/layout-engine.md セクション8
@@ -268,10 +348,15 @@ function buildQueryBoxNodes(
     }
   }
 
-  // detail モードの場合は SELECT句の ClauseBoxNode + ColumnItemNode を生成
+  // detail モードの場合は SELECT / FROM / WHERE の ClauseBoxNode を縦積みで生成
   // CTE/サブクエリがない場合のみ（ネストがある場合は内部クエリにカラムがある）
   if (dm === 'detail' && table.ctes.length === 0 && table.fromSubqueries.length === 0 && table.whereSubqueries.length === 0) {
-    buildSelectClauseNodes(tableId, table, tableId, LAYOUT.PADDING_TOP, nodes);
+    let y = LAYOUT.PADDING_TOP;
+    const selectH = buildSelectClauseNodes(tableId, table, tableId, y, nodes);
+    if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
+    const fromH = buildFromClauseNode(tableId, table, tableId, y, nodes);
+    if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
+    buildWhereClauseNode(tableId, table, tableId, y, nodes);
   }
 }
 
