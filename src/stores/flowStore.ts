@@ -247,7 +247,8 @@ function buildQueryBoxNodes(
   parentId: string | undefined,
   nestDepth: number,
   nodes: FlowNode[],
-  displayModes: Map<string, DisplayMode>
+  displayModes: Map<string, DisplayMode>,
+  deferredMainClauses: Array<{ tableId: string; table: TableNode }>
 ): void {
   // displayMode を設定（未設定の場合はデフォルト 'detail'）
   if (!displayModes.has(tableId)) {
@@ -293,7 +294,8 @@ function buildQueryBoxNodes(
       tableId,
       nestDepth + 1,
       nodes,
-      displayModes
+      displayModes,
+      deferredMainClauses
     );
     // 生成されたノードに位置を設定
     const cteNode = nodes.find((n) => n.id === cteNodeId);
@@ -318,7 +320,8 @@ function buildQueryBoxNodes(
       tableId,
       nestDepth + 1,
       nodes,
-      displayModes
+      displayModes,
+      deferredMainClauses
     );
     const subNode = nodes.find((n) => n.id === subNodeId);
     if (subNode) {
@@ -338,7 +341,8 @@ function buildQueryBoxNodes(
       tableId,
       nestDepth + 1,
       nodes,
-      displayModes
+      displayModes,
+      deferredMainClauses
     );
     const subNode = nodes.find((n) => n.id === subNodeId);
     if (subNode) {
@@ -348,15 +352,27 @@ function buildQueryBoxNodes(
     }
   }
 
-  // detail モードの場合は SELECT / FROM / WHERE の ClauseBoxNode を縦積みで生成
-  // CTE/サブクエリがない場合のみ（ネストがある場合は内部クエリにカラムがある）
-  if (dm === 'detail' && table.ctes.length === 0 && table.fromSubqueries.length === 0 && table.whereSubqueries.length === 0) {
-    let y = LAYOUT.PADDING_TOP;
-    const selectH = buildSelectClauseNodes(tableId, table, tableId, y, nodes);
-    if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
-    const fromH = buildFromClauseNode(tableId, table, tableId, y, nodes);
-    if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
-    buildWhereClauseNode(tableId, table, tableId, y, nodes);
+  // detail モードの場合は main クエリの SELECT / FROM / WHERE ClauseBoxNode を
+  // 縦積みで生成する。
+  if (dm === 'detail') {
+    const hasNested =
+      table.ctes.length > 0 ||
+      table.fromSubqueries.length > 0 ||
+      table.whereSubqueries.length > 0;
+    if (hasNested) {
+      // ネスト子のサイズは後段 recalculateLayout まで確定しないため、
+      // ここでは生成を遅延し、syncFromLineage 側で位置を決めて生成する
+      // （bd-sql_viz_202604_2-u8l）。
+      deferredMainClauses.push({ tableId, table });
+    } else {
+      // リーフクエリはそのまま即時生成
+      let y = LAYOUT.PADDING_TOP;
+      const selectH = buildSelectClauseNodes(tableId, table, tableId, y, nodes);
+      if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
+      const fromH = buildFromClauseNode(tableId, table, tableId, y, nodes);
+      if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
+      buildWhereClauseNode(tableId, table, tableId, y, nodes);
+    }
   }
 }
 
@@ -390,11 +406,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const edgeIdSet = new Set<string>();
     const state = get();
     const displayModes = new Map(state.displayModes);
+    // CTE/サブクエリを持つ親クエリの main SELECT/FROM/WHERE clauseBox 生成は
+    // 子ノードのサイズ確定後（recalculateLayout 後）に遅延実行する。
+    const deferredMainClauses: Array<{ tableId: string; table: TableNode }> = [];
 
     for (const [tableId, table] of tables) {
       if (table.isRegistered && table.queryType !== 'unresolved') {
         // F1-8: CTE/サブクエリを含む QueryBoxNode を再帰的に生成
-        buildQueryBoxNodes(tableId, table, undefined, 0, nodes, displayModes);
+        buildQueryBoxNodes(tableId, table, undefined, 0, nodes, displayModes, deferredMainClauses);
       } else {
         // 未登録テーブルは UnresolvedBoxNode
         if (!displayModes.has(tableId)) {
@@ -458,8 +477,36 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     // React Flow v12 要件: 親ノードは子ノードより配列の前に配置する
     const sortedNodes = sortNodesParentFirst(nodes);
-    // 親サイズを先に確定させる（arrangeTableNodes が幅を参照するため）
-    const recalculated = recalculateLayout(sortedNodes as Node[]) as FlowNode[];
+    // 1回目の recalculateLayout: ネスト子ノードのサイズを確定させる
+    let recalculated = recalculateLayout(sortedNodes as Node[]) as FlowNode[];
+
+    // 遅延されていた main clauseBox 群を生成する（bd-sql_viz_202604_2-u8l）
+    // ネスト子の最下端を算出し、その直下に SELECT → FROM → WHERE を縦積み
+    if (deferredMainClauses.length > 0) {
+      for (const { tableId, table } of deferredMainClauses) {
+        const childNodes = recalculated.filter(
+          (n) => n.parentId === tableId && n.type === 'queryBox'
+        );
+        let y = LAYOUT.PADDING_TOP;
+        if (childNodes.length > 0) {
+          const maxBottom = Math.max(
+            ...childNodes.map((n) => {
+              const h = n.height ?? LAYOUT.QUERY_BOX_MIN_HEIGHT;
+              return n.position.y + h;
+            })
+          );
+          y = maxBottom + LAYOUT.CHILD_GAP_VERTICAL;
+        }
+        const selectH = buildSelectClauseNodes(tableId, table, tableId, y, recalculated);
+        if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
+        const fromH = buildFromClauseNode(tableId, table, tableId, y, recalculated);
+        if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
+        buildWhereClauseNode(tableId, table, tableId, y, recalculated);
+      }
+      // 2回目の recalculateLayout: 追加された main clauseBox を含めて親サイズ再計算
+      const resortedNodes = sortNodesParentFirst(recalculated);
+      recalculated = recalculateLayout(resortedNodes as Node[]) as FlowNode[];
+    }
 
     // ルートレベルのテーブルノード（parentId を持たない）を依存関係に基づき左→右に配置
     // bd-sql_viz_202604_2-z0e: syncFromLineage から arrangeTableNodes を呼ぶ修正
