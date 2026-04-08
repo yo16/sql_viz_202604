@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLineageStore } from '@/stores/lineageStore';
 import styles from './SqlInputPanel.module.css';
 
 export interface SqlInputPanelProps {
@@ -23,6 +24,12 @@ export interface SqlInputPanelProps {
  */
 export function SqlInputPanel({ onSubmit, isLoading }: SqlInputPanelProps) {
   const [sql, setSql] = useState('');
+  const resetCounter = useLineageStore((s) => s.resetCounter);
+
+  // lineageStore.resetAll() が呼ばれたら入力テキストをクリア
+  useEffect(() => {
+    setSql('');
+  }, [resetCounter]);
 
   const handleSubmit = useCallback(() => {
     if (sql.trim().length === 0 || isLoading) return;

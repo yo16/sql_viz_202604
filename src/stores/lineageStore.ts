@@ -14,6 +14,12 @@ export interface LineageState {
   queries: Map<string, ParsedQuery>;
   /** 選択中のDB方言 */
   dialect: SqlDialect;
+  /**
+   * リセット通知カウンタ。resetAll のたびに +1 される。
+   * SqlInputPanel / FileDropZone 等が購読し、変化を検知して
+   * local state をクリアするために使用する。
+   */
+  resetCounter: number;
 }
 
 /** lineageStore のアクション型 */
@@ -55,6 +61,7 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   tables: new Map(),
   queries: new Map(),
   dialect: 'BigQuery',
+  resetCounter: 0,
 
   addQuery: (parsed: ParsedQuery) => {
     const state = get();
@@ -90,10 +97,12 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   },
 
   resetAll: () => {
+    const state = get();
     set({
       tables: new Map(),
       queries: new Map(),
       dialect: 'BigQuery',
+      resetCounter: state.resetCounter + 1,
     });
   },
 
