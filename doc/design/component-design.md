@@ -205,9 +205,13 @@ interface QueryBoxNodeData {
 **タイトルルール**:
 - CTAS: `targetTable` の値（例: `output_table`）
 - 単純SELECT: `[問い合わせ]` (F1-6)
-- CTE: CTE名（例: `cte_monthly_sales`）
+- CTE: CTE名（例: `monthly_sales`）
 - FROMサブクエリ: エイリアス名（例: `sub`）
-- WHERE IN/EXISTS サブクエリ: `[サブクエリ]` (F1-8)
+- WHERE IN/EXISTS サブクエリ: エイリアスがあればその名前、無ければ `[サブクエリ]` (F1-8)
+
+**実装** (bd-sql_viz_202604_2-9rp): `createTableNode` 自体は targetTable 由来で
+displayTitle を決めるため CTE/サブクエリ内部では `[問い合わせ]` になる。`buildLineageGraph`
+の CTE/サブクエリ生成箇所で、内部 TableNode の `displayTitle` を上書きする。
 
 ### 3.2 ClauseBoxNode — 句ノード
 

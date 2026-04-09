@@ -113,23 +113,28 @@ export function createTableNode(query: ParsedQuery): TableNode {
   };
 
   // CTE ノード
-  const ctes: CteNode[] = query.ctes.map((cte) => ({
-    name: cte.name,
-    tableNode: createTableNode(cte.query),
-  }));
+  // bd-sql_viz_202604_2-9rp: 内部 TableNode の displayTitle を CTE 名で上書きする
+  // （createTableNode 単体では targetTable=null のため "[問い合わせ]" になってしまう）
+  const ctes: CteNode[] = query.ctes.map((cte) => {
+    const inner = createTableNode(cte.query);
+    inner.displayTitle = cte.name;
+    return { name: cte.name, tableNode: inner };
+  });
 
-  // FROM サブクエリ
-  const fromSubqueries: SubqueryNode[] = query.from.subqueries.map((sq) => ({
-    alias: sq.alias,
-    tableNode: createTableNode(sq.query),
-  }));
+  // FROM サブクエリ — エイリアス名を displayTitle に
+  const fromSubqueries: SubqueryNode[] = query.from.subqueries.map((sq) => {
+    const inner = createTableNode(sq.query);
+    inner.displayTitle = sq.alias;
+    return { alias: sq.alias, tableNode: inner };
+  });
 
-  // WHERE サブクエリ
+  // WHERE サブクエリ — エイリアスがあれば名前、無ければ "[サブクエリ]" のまま
   const whereSubqueries: SubqueryNode[] = query.where
-    ? query.where.subqueries.map((sq) => ({
-        alias: sq.alias,
-        tableNode: createTableNode(sq.query),
-      }))
+    ? query.where.subqueries.map((sq) => {
+        const inner = createTableNode(sq.query);
+        inner.displayTitle = sq.alias && sq.alias.length > 0 ? sq.alias : '[サブクエリ]';
+        return { alias: sq.alias, tableNode: inner };
+      })
     : [];
 
   // カラム情報を populate する（CTE / サブクエリ内部の TableNode も含めて全て）
