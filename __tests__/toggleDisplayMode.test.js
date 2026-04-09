@@ -18,10 +18,14 @@ const content = fs.readFileSync(srcPath, 'utf-8');
 // --- Structure tests ---
 test('flowStore.ts exists', () => { assert(fs.existsSync(srcPath), 'not found'); });
 test('imports recalculateLayout', () => { assert(content.includes("from '@/layout/recalculateLayout'"), 'no import'); });
-test('has collectDescendantIds helper', () => { assert(content.includes('function collectDescendantIds'), 'no helper'); });
-test('toggleDisplayMode calls recalculateLayout', () => { assert(content.includes('recalculateLayout(updatedNodes)'), 'no recalc call'); });
-test('toggleDisplayMode collects descendants', () => { assert(content.includes('collectDescendantIds'), 'no collect call'); });
-test('hidden flag is set based on compact mode', () => { assert(content.includes('hidden: isNowCompact'), 'no hidden toggle'); });
+test('toggleDisplayMode calls recalculateLayout', () => { assert(content.includes('recalculateLayout('), 'no recalc call'); });
+// bd-sql_viz_202604_2-8dp: 以前は collectDescendantIds で子孫を一律に hidden 設定
+// していたが、ネスト compact 状態が壊れる問題があったため、displayModes チェーンから
+// hidden を計算する computeHiddenStatesFromDisplayModes に変更
+test('toggleDisplayMode uses computeHiddenStatesFromDisplayModes (bd-8dp)', () => {
+  assert(content.includes('computeHiddenStatesFromDisplayModes'),
+    'computeHiddenStatesFromDisplayModes should be used');
+});
 
 // --- Functional tests ---
 const FUNCTIONAL_TEST = `

@@ -20,39 +20,6 @@ import { LAYOUT } from '@/layout/layoutConstants';
 import { useLineageStore } from '@/stores/lineageStore';
 
 /**
- * 指定ノードの全子孫IDを再帰的に収集する。
- * React Flow の parentId 関係を辿って親→子の依存を見つける。
- */
-function collectDescendantIds(nodes: Node[], rootId: string): Set<string> {
-  const descendants = new Set<string>();
-
-  // 親ID → 子IDリストのマップを構築
-  const childrenMap = new Map<string, string[]>();
-  for (const node of nodes) {
-    if (node.parentId) {
-      const list = childrenMap.get(node.parentId) ?? [];
-      list.push(node.id);
-      childrenMap.set(node.parentId, list);
-    }
-  }
-
-  // BFSで子孫を収集
-  const queue: string[] = [rootId];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    const children = childrenMap.get(id) ?? [];
-    for (const childId of children) {
-      if (!descendants.has(childId)) {
-        descendants.add(childId);
-        queue.push(childId);
-      }
-    }
-  }
-
-  return descendants;
-}
-
-/**
  * ノード配列を親→子の順序にソートする。
  * React Flow v12 の要件: parentId を持つノードは親より後に配置する必要がある。
  * 設計参照: doc/design/layout-engine.md セクション9
@@ -82,6 +49,48 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
   }
 
   return result;
+}
+
+/**
+ * 各ノードの hidden 状態を displayModes チェーンから計算する
+ * (bd-sql_viz_202604_2-8dp)。
+ *
+ * ルール: ノードの祖先 queryBox のいずれかが `displayModes` で `'compact'` の
+ * とき、そのノードは hidden=true。それ以外は hidden=false。
+ *
+ * これにより「外側 detail → 内側 compact → 外側 compact → 外側 detail」と
+ * いう操作列でも、内側 CTE の compact 状態が保持される。
+ */
+function computeHiddenStatesFromDisplayModes<T extends FlowNode>(
+  nodes: T[],
+  displayModes: Map<string, DisplayMode>
+): T[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const memo = new Map<string, boolean>();
+
+  function hasCompactAncestor(nodeId: string): boolean {
+    if (memo.has(nodeId)) return memo.get(nodeId)!;
+    const node = byId.get(nodeId);
+    if (!node || node.parentId === undefined) {
+      memo.set(nodeId, false);
+      return false;
+    }
+    const parentId = node.parentId;
+    // 親自身が compact ならその子孫は hidden
+    if (displayModes.get(parentId) === 'compact') {
+      memo.set(nodeId, true);
+      return true;
+    }
+    const inherited = hasCompactAncestor(parentId);
+    memo.set(nodeId, inherited);
+    return inherited;
+  }
+
+  return nodes.map((n) => {
+    const hidden = hasCompactAncestor(n.id);
+    if ((n.hidden ?? false) === hidden) return n;
+    return { ...n, hidden };
+  });
 }
 
 /**
@@ -758,31 +767,23 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const next: DisplayMode = current === 'detail' ? 'compact' : 'detail';
     displayModes.set(tableId, next);
 
-    // 対象ノードの全子孫IDを再帰的に収集
-    const descendantIds = collectDescendantIds(state.nodes, tableId);
-
-    // ノードを更新:
-    // - 対象ノード: displayMode を切替
-    // - 子孫ノード: compact なら hidden=true, detail なら hidden=false
-    const isNowCompact = next === 'compact';
-    const updatedNodes = state.nodes.map((node) => {
+    // 対象ノードの displayMode を切替えつつ、全ノードの hidden 状態を
+    // displayModes チェーンから再計算する (bd-sql_viz_202604_2-8dp)。
+    // これにより「外側 detail → 内側 compact → 外側 compact → 外側 detail」
+    // のような操作列でも、内側の compact 状態が保持される。
+    const withUpdatedDisplayMode = state.nodes.map((node) => {
       if (node.id === tableId) {
         return {
           ...node,
           data: { ...node.data, displayMode: next },
         };
       }
-      if (descendantIds.has(node.id)) {
-        return {
-          ...node,
-          hidden: isNowCompact,
-        };
-      }
       return node;
     });
+    const withHidden = computeHiddenStatesFromDisplayModes(withUpdatedDisplayMode, displayModes);
 
     // recalculateLayout でボトムアップにサイズ再計算
-    let recalculated = recalculateLayout(updatedNodes) as FlowNode[];
+    let recalculated = recalculateLayout(withHidden) as FlowNode[];
 
     // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
     recalculated = applyCompactSizes(recalculated);
