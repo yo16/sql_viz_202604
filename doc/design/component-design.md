@@ -463,6 +463,17 @@ interface LineageEdgeData {
   - 子が compact だった場合: 子は compact のまま表示される
 - displayMode は各 QueryBoxNode ごとに独立管理される
 
+**ネスト compact 状態の保持** (bd-sql_viz_202604_2-8dp):
+以前は `toggleDisplayMode` が全子孫に `hidden: isNowCompact` を一律設定していた
+ため、「外側 detail → 内側 compact → 外側 compact → 外側 detail」の操作列で
+内側の compact 状態（より正確には内側の孫の hidden 状態）が壊れていた。
+
+修正: ノードの hidden は `displayModes` マップから派生する**計算値**として扱う。
+`computeHiddenStatesFromDisplayModes(nodes, displayModes)` ヘルパーが各ノードの
+parentId チェーンを遡り、いずれかの祖先 queryBox が `compact` であればそのノード
+は `hidden=true` とする。`toggleDisplayMode` は該当ノードの `displayMode` のみを
+書き換え、全ノードの hidden はこのヘルパーで再計算する。
+
 ---
 
 ## 6. 状態管理 — Zustand ストア設計
