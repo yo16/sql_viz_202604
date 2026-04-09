@@ -178,6 +178,22 @@ interface WhereClause {
   subqueries: SubqueryInfo[];
 }
 
+// WHERE 内サブクエリ抽出 (bd-sql_viz_202604_2-7kq):
+// `WHERE col IN (SELECT ...)` や `EXISTS (SELECT ...)` のような WHERE 内
+// サブクエリを、`extractWhereClause` が再帰的に walk して抽出する。
+// - AST 上では `expr_list.value[0].ast` に `type: 'select'` がぶら下がる
+// - visitor が left/right/expr/args/value/ast を下降して select ノードを収集
+// - 無名なので `[WHERE サブクエリ 1]`, `[WHERE サブクエリ 2]` の連番 alias を付与
+// - 下流 (buildLineageGraph, flowStore の whereSubqueries 処理) は既に存在し、
+//   独立した nested queryBox と外部テーブル → サブクエリのエッジが自動描画される
+
+// 条件式の整形 (bd-sql_viz_202604_2-hgg):
+// conditionText / onConditionText / expressionText は `formatExpr` で生成する。
+// `formatExpr` は node-sql-parser の `Parser.exprToSQL` を第一選択として使い、
+// 複雑な式 (IN (subquery), BETWEEN, 関数呼び出し, 単項演算子) も `'...'` に
+// 潰さず正確に変換する。失敗時は従来の手書きフォーマッタに fall through する。
+// 出力の MySQL スタイルバッククォートは除去して見やすくする。
+
 /** GROUP BY句 */
 interface GroupByClause {
   /** GROUP BY のカラム参照群 */
