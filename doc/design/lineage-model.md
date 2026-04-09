@@ -199,6 +199,16 @@ type SqlDialect = 'BigQuery' | 'PostgreSQL' | 'MySQL' | 'SQLite';
 で判定すると CTE 参照も未登録扱いされてしまう。クエリごとに `cteNames` 集合を
 作り、FROM/JOIN チェックで skip する。
 
+**CTE / サブクエリ内部の FROM 参照も再帰的に walk する** (bd-sql_viz_202604_2-uqr):
+以前は registerTables がトップレベルの FROM/JOIN しか巡回しておらず、CTE 内部
+から参照される外部テーブル (例: `WITH monthly_sales AS (SELECT ... FROM orders)`
+の `orders`) が unresolved として登録されなかった。
+`collectUnresolvedRefs(query, ancestorScope, tables)` というヘルパーで
+ParsedQuery を再帰的に walk し、各スコープで利用可能な名前 (先祖スコープの
+CTE 名 + そのレベルの CTE 名 + FROM/WHERE サブクエリの alias) の集合を維持
+しつつ、FROM/JOIN 参照がその集合に含まれない場合に unresolved として登録する。
+SQL の lexical scoping に従い、内側のスコープは外側の名前を参照可能。
+
 ```typescript
 // lib/lineage/buildLineageGraph.ts
 

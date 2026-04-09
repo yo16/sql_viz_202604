@@ -46,33 +46,64 @@ export function registerTables(
     const tableNode = createTableNode(query);
     tables.set(tableId, tableNode);
 
-    // クエリ自身の CTE 名集合。これらはトップレベルの FROM/JOIN から参照されても
-    // 未登録扱いしない (bd-sql_viz_202604_2-r11)。CTE はこのクエリのスコープ内で
-    // のみ有効で、親 TableNode の `ctes` 配列にネスト構造として保持される。
-    const cteNames = new Set(query.ctes.map((c) => c.name));
-
-    // FROM/JOIN で参照されるテーブルの未登録チェック
-    for (const fromTable of query.from.tables) {
-      if (cteNames.has(fromTable.name)) continue;
-      if (!tables.has(fromTable.name)) {
-        tables.set(fromTable.name, createUnresolvedTableNode(fromTable.name));
-      }
-    }
-    for (const join of query.from.joins) {
-      if (cteNames.has(join.table)) continue;
-      if (!tables.has(join.table)) {
-        tables.set(join.table, createUnresolvedTableNode(join.table));
-      }
-    }
-
-    // CTE はメインテーブルの TableNode 内にネスト構造として保持される。
-    // createTableNode() 内で query.ctes を再帰的に TableNode 化しているため、
-    // ここでのトップレベル tables マップへの登録は不要。
-    // CTE は親テーブルのスコープ内でのみ参照されるため、
-    // グローバルな tables マップに追加すると名前衝突のリスクがある。
+    // bd-sql_viz_202604_2-uqr: トップレベルだけでなく CTE / サブクエリ内部の
+    // FROM/JOIN 参照も再帰的に walk して未登録テーブルを登録する。
+    // 各スコープで利用可能な名前（先祖スコープの CTE 名 + そのレベルの CTE 名 +
+    // FROMサブクエリ/WHEREサブクエリのエイリアス）は skip する。
+    collectUnresolvedRefs(query, new Set<string>(), tables);
   }
 
   return tables;
+}
+
+/**
+ * ParsedQuery を再帰的に walk して、外部テーブル参照 (スコープ内のエイリアス
+ * やCTE名に一致しないもの) を unresolved として tables に登録する。
+ *
+ * @param query - 対象 ParsedQuery
+ * @param ancestorScope - 外側スコープで利用可能な名前（先祖 CTE / サブクエリ
+ *   エイリアス）。JavaScript/SQL の lexical scoping に従い、内側からアクセス可能。
+ * @param tables - 出力先 tables マップ
+ */
+function collectUnresolvedRefs(
+  query: ParsedQuery,
+  ancestorScope: Set<string>,
+  tables: Map<string, TableNode>
+): void {
+  // このレベルで定義される名前: 自クエリの CTE 名 + FROM/WHERE サブクエリ alias
+  const localScope = new Set<string>(ancestorScope);
+  for (const cte of query.ctes) localScope.add(cte.name);
+  for (const sq of query.from.subqueries) localScope.add(sq.alias);
+  if (query.where) {
+    for (const sq of query.where.subqueries) localScope.add(sq.alias);
+  }
+
+  // FROM/JOIN 参照を unresolved 登録 (スコープ内の名前は skip)
+  for (const fromTable of query.from.tables) {
+    if (localScope.has(fromTable.name)) continue;
+    if (!tables.has(fromTable.name)) {
+      tables.set(fromTable.name, createUnresolvedTableNode(fromTable.name));
+    }
+  }
+  for (const join of query.from.joins) {
+    if (localScope.has(join.table)) continue;
+    if (!tables.has(join.table)) {
+      tables.set(join.table, createUnresolvedTableNode(join.table));
+    }
+  }
+
+  // 再帰: CTE / FROMサブクエリ / WHEREサブクエリ の内部クエリも walk
+  for (const cte of query.ctes) {
+    collectUnresolvedRefs(cte.query, localScope, tables);
+  }
+  for (const sq of query.from.subqueries) {
+    collectUnresolvedRefs(sq.query, localScope, tables);
+  }
+  if (query.where) {
+    for (const sq of query.where.subqueries) {
+      collectUnresolvedRefs(sq.query, localScope, tables);
+    }
+  }
 }
 
 /**
