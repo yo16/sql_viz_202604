@@ -69,6 +69,12 @@
 }
 
 .compactBody {
+  /* bd-sql_viz_202604_2-3bk: compact モードで列名がbox幅を超えないよう制約を付与
+     container の overflow:visible を維持しつつ、compactBody 内部だけを clip */
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
   padding: var(--spacing-xs) var(--spacing-sm);
 }
 
@@ -79,6 +85,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .compactMore {
