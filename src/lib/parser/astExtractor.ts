@@ -61,7 +61,7 @@ function buildParsedQuery(
 ): ParsedQuery {
   const selectClause = extractSelectClause(selectAst.columns);
   const fromClause = extractFromClause(selectAst.from ?? [], rawSql);
-  const whereClause = selectAst.where ? extractWhereClause(selectAst.where) : null;
+  const whereClause = selectAst.where ? extractWhereClause(selectAst.where, rawSql) : null;
   const groupByClause = selectAst.groupby ? extractGroupByClause(selectAst.groupby) : null;
   const havingClause = selectAst.having ? extractHavingClause(selectAst.having) : null;
   const orderByClause = selectAst.orderby ? extractOrderByClause(selectAst.orderby) : null;
@@ -250,9 +250,41 @@ function normalizeJoinType(join: string): 'INNER' | 'LEFT' | 'RIGHT' | 'FULL' | 
 // WHERE clause extraction
 // =========================================
 
-function extractWhereClause(whereAst: any): WhereClause {
+function extractWhereClause(whereAst: any, rawSql: string = ''): WhereClause {
   const refs = collectColumnRefsFromExpr(whereAst);
-  const subqueries: SubqueryInfo[] = []; // Subquery extraction is complex; handled in future iterations
+
+  // bd-sql_viz_202604_2-7kq: WHERE 内のサブクエリ (IN, EXISTS, =, ALL, ANY 等) を
+  // 再帰的に抽出する。無名なので [WHERE サブクエリ N] の連番 alias を付与する。
+  const subqueries: SubqueryInfo[] = [];
+  let counter = 0;
+  const visit = (node: any): void => {
+    if (!node || typeof node !== 'object') return;
+    // select 型のノードはサブクエリ本体
+    if (node.type === 'select') {
+      counter += 1;
+      const alias = `[WHERE サブクエリ ${counter}]`;
+      const inner = buildParsedQuery(node, rawSql, null, 'select');
+      subqueries.push({ alias, query: inner });
+      return; // 内部の更にネストされたサブクエリは inner ParsedQuery 側で抽出される
+    }
+    // IN (SELECT ...) の場合: expr_list.value[] の各要素に { ast: {type:'select'} } が入る
+    // また unary/existence (EXISTS) 等でも直接 ast フィールドにぶら下がる
+    if (node.ast && typeof node.ast === 'object') {
+      visit(node.ast);
+    }
+    // 再帰対象となるフィールド
+    for (const key of ['left', 'right', 'expr', 'args', 'value']) {
+      const child = node[key];
+      if (!child) continue;
+      if (Array.isArray(child)) {
+        for (const c of child) visit(c);
+      } else if (typeof child === 'object') {
+        visit(child);
+      }
+    }
+  };
+  visit(whereAst);
+
   return {
     columnRefs: refs,
     conditionText: formatExpr(whereAst),
