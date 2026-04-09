@@ -33,6 +33,12 @@ export interface ClauseBoxNodeData {
   clauseType: 'SELECT' | 'FROM' | 'WHERE' | 'GROUP BY' | 'HAVING' | 'ORDER BY';
   /** 句のラベル表示 */
   label: string;
+  /**
+   * 縦展開状態（bd-sql_viz_202604_2-oi5）。
+   * true の場合は label を複数行に折り返し表示し、box の高さを拡張する。
+   * SELECT 句は ColumnItemNode 子を持つため対象外。
+   */
+  expanded?: boolean;
 }
 
 /** ColumnItemNode のデータ型 */
@@ -102,6 +108,11 @@ export interface FlowActions {
   syncFromLineage: (tables: Map<string, TableNode>) => void;
   /** 指定テーブルの compact/detail をトグル */
   toggleDisplayMode: (tableId: string) => void;
+  /**
+   * 指定 ClauseBoxNode の縦展開をトグル (bd-sql_viz_202604_2-oi5)。
+   * label を複数行に折り返し、node.height を拡張、parent QueryBox を再計算する。
+   */
+  toggleClauseExpand: (clauseId: string) => void;
   /** カラムクリック時のリネージュハイライト */
   highlightLineage: (tableId: string, columnName: string) => void;
   /** ハイライトをクリア */

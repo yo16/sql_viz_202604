@@ -84,6 +84,24 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
 }
 
 /**
+ * ClauseBoxNode を縦展開した時の高さを概算する (bd-sql_viz_202604_2-oi5)。
+ * label の文字数と clauseBox 幅から折り返し行数を見積もる。
+ *
+ * 概算式:
+ *   chars per line ≒ floor((width - inner padding) / char width)
+ *                  ≒ floor((150 - 16) / 7) ≒ 19
+ *   height = HEADER + ceil(label.length / chars_per_line) * line_height + body padding
+ */
+function computeExpandedClauseHeight(label: string): number {
+  if (!label) return LAYOUT.CLAUSE_HEADER_HEIGHT;
+  const charsPerLine = 19;
+  const lineHeight = 16;
+  const bodyPadding = 12;
+  const lines = Math.max(1, Math.ceil(label.length / charsPerLine));
+  return LAYOUT.CLAUSE_HEADER_HEIGHT + lines * lineHeight + bodyPadding;
+}
+
+/**
  * 句 clauseBox 共通生成ヘルパー（ヘッダのみ、子カラムなし）。
  * 横並びレイアウト対応 (bd-sql_viz_202604_2-q82)。
  *
@@ -626,6 +644,38 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const recalculated = recalculateLayout(updatedNodes);
 
     set({ nodes: recalculated as typeof state.nodes, displayModes });
+  },
+
+  /**
+   * ClauseBoxNode の縦展開をトグル (bd-sql_viz_202604_2-oi5)。
+   * SELECT 句は ColumnItem 子を持つため対象外（no-op）。
+   */
+  toggleClauseExpand: (clauseId: string) => {
+    const state = get();
+    const target = state.nodes.find((n) => n.id === clauseId);
+    if (!target || target.type !== 'clauseBox') return;
+    const data = target.data as ClauseBoxNodeData;
+    // SELECT 句は ColumnItem 子を持つため展開対象外
+    if (data.clauseType === 'SELECT') return;
+
+    const nextExpanded = !(data.expanded ?? false);
+    const expandedHeight = computeExpandedClauseHeight(data.label);
+    const collapsedHeight = LAYOUT.CLAUSE_HEADER_HEIGHT;
+    const nextHeight = nextExpanded ? expandedHeight : collapsedHeight;
+
+    const updatedNodes = state.nodes.map((n) => {
+      if (n.id !== clauseId) return n;
+      return {
+        ...n,
+        height: nextHeight,
+        style: { ...n.style, height: nextHeight },
+        data: { ...n.data, expanded: nextExpanded },
+      };
+    });
+
+    // 親 QueryBox サイズを再計算
+    const recalculated = recalculateLayout(updatedNodes);
+    set({ nodes: recalculated as typeof state.nodes });
   },
 
   highlightLineage: (tableId: string, columnName: string) => {

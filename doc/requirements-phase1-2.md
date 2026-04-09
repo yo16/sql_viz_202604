@@ -71,6 +71,7 @@ DWH構築時に使用される膨大なSQLクエリ群の**カラムレベルリ
     - FROM句: ClauseBoxNode のラベルに参照テーブル名と JOIN 情報を表示（bd-sql_viz_202604_2-c69）
     - WHERE/GROUP BY/HAVING/ORDER BY: ClauseBoxNode のラベルに条件式・式テキストを表示
     - 該当する句が無い場合はその clauseBox を生成しない（左詰めで詰める）
+    - SELECT 以外の ClauseBox は固定幅で表示しているため長い label が `...` で省略される。**ヘッダの ▸/▾ クリックで縦展開可能**にし、複数行で読めるようにする（bd-sql_viz_202604_2-oi5）
     - CTEやサブクエリを持つクエリでも、ネスト子ノードの下にメインクエリの clauseBox 群を横並び配置する（bd-sql_viz_202604_2-u8l, bd-sql_viz_202604_2-q82）
   - **カラム一覧表示**: SELECT句のカラム名のみをコンパクトに表示
 

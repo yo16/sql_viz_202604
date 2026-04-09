@@ -235,6 +235,15 @@ interface ClauseBoxNodeData {
 - detail表示時のみ visible。compact時は `hidden: true`
 - `draggable: false` で固定（bd-sql_viz_202604_2-35o）
 
+**縦展開** (bd-sql_viz_202604_2-oi5):
+- SELECT 以外の clauseBox はヘッダの ▸/▾ アイコンクリックで縦展開可能
+- 通常時 (collapsed): ヘッダ内に 1 行で label をトランケート表示（`...` 省略）
+- 展開時 (expanded): ヘッダ下に label を複数行折り返し表示。box の `height` を
+  `flowStore.toggleClauseExpand` で動的に拡張し、`recalculateLayout` で親
+  QueryBox を再計算する
+- 展開高さは label の文字数から `computeExpandedClauseHeight` で概算
+- SELECT 句は ColumnItem 子があるため対象外（toggle 呼出も no-op）
+
 **句タイプ別の生成ルール** (bd-sql_viz_202604_2-c69 / bd-sql_viz_202604_2-q82):
 - **FROM**: `buildFromClauseNode`。ラベルにテーブル一覧と JOIN 情報（例: `users` / `a INNER JOIN b ON a.id = b.a_id`）
 - **WHERE**: `buildWhereClauseNode`。ラベルに条件式（`conditionText`）
