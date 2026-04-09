@@ -235,12 +235,20 @@ interface ClauseBoxNodeData {
 - detail表示時のみ visible。compact時は `hidden: true`
 - `draggable: false` で固定（bd-sql_viz_202604_2-35o）
 
-**句タイプ別の生成ルール** (bd-sql_viz_202604_2-c69):
-- **SELECT**: `buildSelectClauseNodes` で生成。ヘッダ + ColumnItemNode 子群
-- **FROM**: `buildFromClauseNode` で生成。ラベルにテーブル一覧と JOIN 情報を組み立てる（例: `users` / `a INNER JOIN b ON a.id = b.a_id`）
-- **WHERE**: `buildWhereClauseNode` で生成。ラベルに条件式（`conditionText`）を表示
-- 親 QueryBox の detail モード時、SELECT → FROM → WHERE の順に縦積みで配置
-- WHERE が無い場合は WHERE clauseBox を生成しない
+**句タイプ別の生成ルール** (bd-sql_viz_202604_2-c69 / bd-sql_viz_202604_2-q82):
+- **FROM**: `buildFromClauseNode`。ラベルにテーブル一覧と JOIN 情報（例: `users` / `a INNER JOIN b ON a.id = b.a_id`）
+- **WHERE**: `buildWhereClauseNode`。ラベルに条件式（`conditionText`）
+- **GROUP BY**: `buildGroupByClauseNode`。ラベルに `expressionText`
+- **HAVING**: `buildHavingClauseNode`。ラベルに `conditionText`
+- **SELECT**: `buildSelectClauseNodes`。ヘッダ + ColumnItemNode 子群
+- **ORDER BY**: `buildOrderByClauseNode`。ラベルに `expressionText`
+
+**配置順 (実行順を可視化、bd-sql_viz_202604_2-q82)**:
+- 親 QueryBox の detail モード時、`buildMainClauseNodes` が以下の順で**横並び**に配置:
+  - `FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY`
+- 全 clauseBox は同じ y 座標 (`PADDING_TOP`) を共有し、x 座標を `width + CHILD_GAP_HORIZONTAL` ずつ進める
+- 該当する句が無い場合（例: WHERE が null）はその clauseBox を生成しない（左詰めで詰める）
+- 親 QueryBox の幅は全 clauseBox の合計幅 + パディング、高さは最も背の高い clauseBox（通常は SELECT、カラム数に応じて伸びる）に合わせて自動算出される
 
 **FROM句の特殊表示**:
 - テーブル一覧を表示
