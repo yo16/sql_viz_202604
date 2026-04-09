@@ -1,5 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { AST } from 'node-sql-parser';
+import { Parser, type AST } from 'node-sql-parser';
+
+/**
+ * node-sql-parser の Parser インスタンス (bd-sql_viz_202604_2-hgg)。
+ * `exprToSQL` を使って複雑な式 (IN (subquery) など) を SQL 文字列に変換する。
+ */
+const sharedParser = new Parser();
 import type {
   ParsedQuery,
   SelectClause,
@@ -416,6 +422,21 @@ function formatAggrFunc(expr: any): string {
 
 function formatExpr(expr: any): string {
   if (!expr) return '';
+
+  // bd-sql_viz_202604_2-hgg: まず Parser.exprToSQL で整形を試す。
+  // これにより IN (subquery), BETWEEN, 関数呼び出し、単項演算子など
+  // 旧 formatExpr が対応していなかった式も正しく変換される。
+  try {
+    const maybe: unknown = (sharedParser as unknown as {
+      exprToSQL?: (e: unknown, opt?: unknown) => string;
+    }).exprToSQL?.(expr, { database: 'BigQuery' });
+    if (typeof maybe === 'string' && maybe.length > 0) {
+      // バッククォート (MySQL スタイル) を取り除いて見やすくする
+      return maybe.replace(/`/g, '');
+    }
+  } catch {
+    // fall through to legacy formatter
+  }
 
   if (expr.type === 'column_ref') {
     const colName = extractColumnName(expr.column);
