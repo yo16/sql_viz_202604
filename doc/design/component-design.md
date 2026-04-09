@@ -192,6 +192,15 @@ interface QueryBoxNodeData {
 | タイトルバー | テーブル名 + 切替アイコン | テーブル名 + 切替アイコン |
 | 本体 | カラム名のリスト | 子ノード（ClauseBoxNode群） |
 | サイズ | 固定小サイズ | 子ノードに応じた動的サイズ |
+| 背景色 | `#eef2f7` (淡い青灰) | 同上 |
+
+**背景色・領域** (bd-sql_viz_202604_2-kfq):
+- `.container` は `width: 100%; height: 100%; box-sizing: border-box` で
+  React Flow outer wrapper 全体を覆うように拡張
+- 背景色は `#eef2f7`（淡い青灰）。子 clauseBox (`#ffffff`) および
+  titleBar (`--color-bg-secondary` = `#f8f9fa`) と区別できる階調
+- 以前は `.container` のサイズが titleBar 分しかなく、子 clauseBox 領域の
+  背景が透明に見えて「ドラッグできるが塗られていない」状態だった
 
 **クリック動作** (F1-4):
 - タイトルバークリックで `compact` / `detail` をトグル

@@ -1,6 +1,12 @@
 .container {
+  /* bd-sql_viz_202604_2-kfq: React Flow wrapper 全体に拡張し、
+     子 clauseBox (#ffffff) および titleBar (#f8f9fa) と区別できる
+     淡い青灰色の背景で視認性・ドラッグ領域を確保する */
   position: relative;
-  background: var(--color-bg-node);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: #eef2f7;
   border: 2px solid var(--color-border-node);
   border-radius: var(--node-border-radius);
   min-width: var(--node-min-width);
