@@ -46,13 +46,20 @@ export function registerTables(
     const tableNode = createTableNode(query);
     tables.set(tableId, tableNode);
 
+    // クエリ自身の CTE 名集合。これらはトップレベルの FROM/JOIN から参照されても
+    // 未登録扱いしない (bd-sql_viz_202604_2-r11)。CTE はこのクエリのスコープ内で
+    // のみ有効で、親 TableNode の `ctes` 配列にネスト構造として保持される。
+    const cteNames = new Set(query.ctes.map((c) => c.name));
+
     // FROM/JOIN で参照されるテーブルの未登録チェック
     for (const fromTable of query.from.tables) {
+      if (cteNames.has(fromTable.name)) continue;
       if (!tables.has(fromTable.name)) {
         tables.set(fromTable.name, createUnresolvedTableNode(fromTable.name));
       }
     }
     for (const join of query.from.joins) {
+      if (cteNames.has(join.table)) continue;
       if (!tables.has(join.table)) {
         tables.set(join.table, createUnresolvedTableNode(join.table));
       }
