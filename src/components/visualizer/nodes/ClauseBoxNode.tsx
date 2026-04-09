@@ -57,9 +57,9 @@ function ClauseBoxNodeComponent({ data, id }: NodeProps) {
 
   return (
     <div className={containerClass}>
-      {/* FROM clauseBox にはテーブル間 table_dependency エッジの target Handle を持たせる
-          (bd-sql_viz_202604_2-q8n) */}
-      {clauseType === 'FROM' && (
+      {/* FROM / WHERE clauseBox には table_dependency エッジの target Handle を持たせる
+          (bd-sql_viz_202604_2-q8n / bd-sql_viz_202604_2-hnw) */}
+      {(clauseType === 'FROM' || clauseType === 'WHERE') && (
         <Handle type="target" position={Position.Left} className={styles.handle} />
       )}
       <div
