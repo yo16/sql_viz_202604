@@ -252,14 +252,19 @@ interface ClauseBoxNodeData {
 - detail表示時のみ visible。compact時は `hidden: true`
 - `draggable: false` で固定（bd-sql_viz_202604_2-35o）
 
-**縦展開** (bd-sql_viz_202604_2-oi5):
+**縦展開** (bd-sql_viz_202604_2-oi5, bd-sql_viz_202604_2-ogr):
 - SELECT 以外の clauseBox はヘッダの ▸/▾ アイコンクリックで縦展開可能
 - 通常時 (collapsed): ヘッダ内に 1 行で label をトランケート表示（`...` 省略）
 - 展開時 (expanded): ヘッダ下に label を複数行折り返し表示。box の `height` を
-  `flowStore.toggleClauseExpand` で動的に拡張し、`recalculateLayout` で親
-  QueryBox を再計算する
+  `flowStore.toggleClauseExpand` で動的に拡張する
 - 展開高さは label の文字数から `computeExpandedClauseHeight` で概算
 - SELECT 句は ColumnItem 子があるため対象外（toggle 呼出も no-op）
+- **左列再スタック** (bd-sql_viz_202604_2-ogr): 左列に縦積みされた clauseBox
+  (FROM/WHERE/GROUP BY/HAVING/ORDER BY) を展開・折り畳みしたとき、`restackLeftColumnClauses`
+  が同じ親 QueryBox 内の左列を実行順に縦積みしなおす。各 clauseBox の現在の
+  height を尊重して y 座標を順に進めるため、兄弟との重なりが発生しない。
+  その後 `recalculateLayout` が親 QueryBox の height を拡張し、最下端の
+  clauseBox がはみ出さないようにする。
 
 **エッジ接続用 Handle** (bd-sql_viz_202604_2-q8n):
 - `clauseType === 'FROM'` の clauseBox には `<Handle type="target" position="left">` を持たせる
