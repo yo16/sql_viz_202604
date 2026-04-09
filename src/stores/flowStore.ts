@@ -693,23 +693,40 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       // 重複エッジ防止のため edgeIds Set で管理
       // bd-sql_viz_202604_2-q8n: targetTableId を保持し、target は post-pass で
       // FROM clauseBox にリダイレクトする
+      // bd-sql_viz_202604_2-icu: 自クエリの CTE / fromSub / whereSub 名も source
+      // として解決する（親クエリが自 CTE を FROM 参照するケース対応）
+      const ownNestedNameToId = new Map<string, string>();
+      for (const cte of table.ctes) {
+        ownNestedNameToId.set(cte.name, `${tableId}__cte__${cte.name}`);
+      }
+      for (const sub of table.fromSubqueries) {
+        ownNestedNameToId.set(sub.alias, `${tableId}__fromsub__${sub.alias}`);
+      }
+      for (const sub of table.whereSubqueries) {
+        ownNestedNameToId.set(sub.alias, `${tableId}__wheresub__${sub.alias}`);
+      }
       for (const depTableId of table.dependsOn) {
-        if (tables.has(depTableId)) {
-          const edgeId = `edge-${depTableId}-${tableId}`;
-          if (!edgeIdSet.has(edgeId)) {
-            edgeIdSet.add(edgeId);
-            edges.push({
-              id: edgeId,
-              source: depTableId,  // 上流
-              target: tableId,     // 下流（後段で FROM clauseBox に再ターゲット）
-              type: 'lineage',
-              data: {
-                dependencyType: 'table_dependency',
-                isHighlighted: false,
-                targetTableId: tableId,
-              },
-            });
-          }
+        let sourceId: string | undefined;
+        if (ownNestedNameToId.has(depTableId)) {
+          sourceId = ownNestedNameToId.get(depTableId);
+        } else if (tables.has(depTableId)) {
+          sourceId = depTableId;
+        }
+        if (!sourceId || sourceId === tableId) continue;
+        const edgeId = `edge-${sourceId}-${tableId}`;
+        if (!edgeIdSet.has(edgeId)) {
+          edgeIdSet.add(edgeId);
+          edges.push({
+            id: edgeId,
+            source: sourceId,
+            target: tableId,
+            type: 'lineage',
+            data: {
+              dependencyType: 'table_dependency',
+              isHighlighted: false,
+              targetTableId: tableId,
+            },
+          });
         }
       }
 
