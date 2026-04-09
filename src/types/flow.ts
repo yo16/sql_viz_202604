@@ -91,6 +91,13 @@ export interface LineageEdgeData {
    * (bd-sql_viz_202604_2-q8n)
    */
   targetTableId?: string;
+  /**
+   * table_dependency 用: リダイレクト先 clauseBox の種別 (bd-sql_viz_202604_2-hnw)。
+   * - 'FROM' (default): target QueryBox の FROM clauseBox に接続
+   * - 'WHERE': WHERE sub → 本体 WHERE clauseBox に接続
+   * 指定が無い場合は 'FROM' とみなす（後方互換）。
+   */
+  targetClauseType?: 'FROM' | 'WHERE';
 }
 
 /** カスタムエッジ型 */

@@ -255,24 +255,24 @@ function extractWhereClause(whereAst: any, rawSql: string = ''): WhereClause {
 
   // bd-sql_viz_202604_2-7kq: WHERE 内のサブクエリ (IN, EXISTS, =, ALL, ANY 等) を
   // 再帰的に抽出する。無名なので [WHERE サブクエリ N] の連番 alias を付与する。
+  // bd-sql_viz_202604_2-hnw: 抽出と同時に subquery AST の object reference を
+  // WeakMap に記録し、conditionText では alias に置換する。
   const subqueries: SubqueryInfo[] = [];
+  const aliasBySelectAst = new WeakMap<object, string>();
   let counter = 0;
   const visit = (node: any): void => {
     if (!node || typeof node !== 'object') return;
-    // select 型のノードはサブクエリ本体
     if (node.type === 'select') {
       counter += 1;
       const alias = `[WHERE サブクエリ ${counter}]`;
       const inner = buildParsedQuery(node, rawSql, null, 'select');
       subqueries.push({ alias, query: inner });
-      return; // 内部の更にネストされたサブクエリは inner ParsedQuery 側で抽出される
+      aliasBySelectAst.set(node, alias);
+      return;
     }
-    // IN (SELECT ...) の場合: expr_list.value[] の各要素に { ast: {type:'select'} } が入る
-    // また unary/existence (EXISTS) 等でも直接 ast フィールドにぶら下がる
     if (node.ast && typeof node.ast === 'object') {
       visit(node.ast);
     }
-    // 再帰対象となるフィールド
     for (const key of ['left', 'right', 'expr', 'args', 'value']) {
       const child = node[key];
       if (!child) continue;
@@ -285,11 +285,51 @@ function extractWhereClause(whereAst: any, rawSql: string = ''): WhereClause {
   };
   visit(whereAst);
 
+  const conditionText = formatExprWithSubqueryAliases(whereAst, aliasBySelectAst);
+
   return {
     columnRefs: refs,
-    conditionText: formatExpr(whereAst),
+    conditionText,
     subqueries,
   };
+}
+
+/**
+ * WHERE 式を SQL 文字列に整形するが、サブクエリ部分は alias (例: [WHERE サブクエリ 1])
+ * で置換する (bd-sql_viz_202604_2-hnw)。
+ */
+function formatExprWithSubqueryAliases(
+  expr: any,
+  aliasBySelectAst: WeakMap<object, string>
+): string {
+  if (!expr) return '';
+
+  // サブクエリ本体 (type: 'select') → alias
+  if (expr.type === 'select' && aliasBySelectAst.has(expr)) {
+    return aliasBySelectAst.get(expr)!;
+  }
+  // サブクエリラッパ (expr_list.value[i] の要素で ast フィールドを持つ)
+  if (expr.ast && typeof expr.ast === 'object' && aliasBySelectAst.has(expr.ast)) {
+    return aliasBySelectAst.get(expr.ast)!;
+  }
+
+  if (expr.type === 'binary_expr') {
+    return `${formatExprWithSubqueryAliases(expr.left, aliasBySelectAst)} ${expr.operator} ${formatExprWithSubqueryAliases(expr.right, aliasBySelectAst)}`;
+  }
+
+  if (expr.type === 'unary_expr') {
+    return `${expr.operator} ${formatExprWithSubqueryAliases(expr.expr, aliasBySelectAst)}`;
+  }
+
+  if (expr.type === 'expr_list') {
+    const parts = (expr.value ?? []).map((v: any) =>
+      formatExprWithSubqueryAliases(v, aliasBySelectAst)
+    );
+    return parts.length === 1 ? parts[0] : `(${parts.join(', ')})`;
+  }
+
+  // それ以外は従来の formatExpr (exprToSQL 経由) にフォールバック
+  return formatExpr(expr);
 }
 
 // =========================================

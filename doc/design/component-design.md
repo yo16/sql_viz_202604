@@ -414,23 +414,36 @@ main FROM clauseBox にリダイレクトされる。
 - `...__cte__monthly_sales` → `...__cte__ranked_users` (sibling エッジ)
 - `...__cte__ranked_users` → main query (親 CTE 参照エッジ、icu で追加)
 
-**動的 target リダイレクト** (bd-sql_viz_202604_2-q8n):
+**動的 target リダイレクト** (bd-sql_viz_202604_2-q8n, bd-sql_viz_202604_2-hnw):
 
 `table_dependency` エッジは target 側 QueryBox の表示モードに応じて接続先を切り替える。
+さらに、`targetClauseType` によって FROM clauseBox か WHERE clauseBox のどちらに
+接続するかも切替えられる。
 
-- **target が detail モード**: target の FROM clauseBox (`${tid}__clause__FROM`) の左端 Handle に接続
-- **target が compact モード**: target の QueryBox (`${tid}`) の左端中央に接続（FROM clauseBox は hidden のため）
+- **target が detail モード**: target の該当 clauseBox (`${tid}__clause__${type}`) の左端 Handle に接続
+- **target が compact モード**: target の QueryBox (`${tid}`) の左端中央に接続
+
+使い分け (`targetClauseType`):
+- **FROM** (default): 通常の上流テーブル → 下流クエリ。例: `users → main (FROM)`
+- **WHERE**: WHERE 内サブクエリ → 本体 WHERE clauseBox。例: `[WHERE サブクエリ 1] → main (WHERE)`
 
 実装:
-- `LineageEdgeData` に `targetTableId?: string` を保持（元の QueryBox id）
-- `flowStore` のヘルパー `computeTableDependencyTarget(targetTableId, nodes)` が
-  現在の `targetTableId__clause__FROM` ノードの存在と hidden 状態を見て、
+- `LineageEdgeData` に `targetTableId?: string`, `targetClauseType?: 'FROM' | 'WHERE'` を保持
+- `flowStore` のヘルパー `computeTableDependencyTarget(targetTableId, nodes, clauseType)` が
+  現在の `${targetTableId}__clause__${type}` ノードの存在と hidden 状態を見て、
   適切な target id を返す
 - `retargetTableDependencyEdges(edges, nodes)` が全 `table_dependency` エッジに
-  対して再ターゲットを実行
+  対して再ターゲットを実行（デフォルト 'FROM'）
 - `syncFromLineage` の最後と `toggleDisplayMode` の最後で再ターゲットを呼ぶ
+- `ClauseBoxNode` は FROM / WHERE の両方に target Handle を持つ
 - `column_lineage` エッジは現状維持（columnItem ノードに直接接続）
 - source 側は常に source QueryBox の右端中央（変更なし）
+
+**WHERE サブクエリエッジ** (bd-sql_viz_202604_2-hnw):
+`buildQueryBoxNodes` が対象 table の `whereSubqueries` ごとにエッジを生成する:
+- source = `${tableId}__wheresub__${alias}`
+- target = `${tableId}` (retargetTableDependencyEdges で WHERE clauseBox にリダイレクト)
+- `targetClauseType = 'WHERE'`
 
 
 対応機能要件: F2-1, F2-3

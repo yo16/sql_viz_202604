@@ -28,17 +28,16 @@ function parse(file: string) {
   return extractQueryStructure(parseSql(sql, 'BigQuery'), sql);
 }
 
-test('05_subquery: WHERE conditionText contains IN and subquery SELECT', () => {
+test('05_subquery: WHERE conditionText has IN with subquery alias (bd-hnw)', () => {
   const pq = parse('05_subquery.sql');
   const where = pq.where!;
   assert(where !== null, 'where exists');
   const t = where.conditionText;
   assert(!/^\\.{3}$/.test(t), 'conditionText should not be just "..."');
   assert(t.toUpperCase().includes('IN'), 'conditionText should include IN: ' + t);
-  assert(t.toUpperCase().includes('SELECT'),
-    'conditionText should include subquery SELECT: ' + t);
-  assert(t.includes('total_amount') || t.includes('5000'),
-    'conditionText should reflect inner WHERE: ' + t);
+  // bd-sql_viz_202604_2-hnw: サブクエリは alias で置換される
+  assert(t.includes('[WHERE サブクエリ'),
+    'conditionText should include subquery alias: ' + t);
 });
 
 test('05_subquery: simple WHERE expression is properly formatted', () => {

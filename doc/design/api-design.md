@@ -178,7 +178,7 @@ interface WhereClause {
   subqueries: SubqueryInfo[];
 }
 
-// WHERE 内サブクエリ抽出 (bd-sql_viz_202604_2-7kq):
+// WHERE 内サブクエリ抽出 (bd-sql_viz_202604_2-7kq / bd-sql_viz_202604_2-hnw):
 // `WHERE col IN (SELECT ...)` や `EXISTS (SELECT ...)` のような WHERE 内
 // サブクエリを、`extractWhereClause` が再帰的に walk して抽出する。
 // - AST 上では `expr_list.value[0].ast` に `type: 'select'` がぶら下がる
@@ -186,6 +186,11 @@ interface WhereClause {
 // - 無名なので `[WHERE サブクエリ 1]`, `[WHERE サブクエリ 2]` の連番 alias を付与
 // - 下流 (buildLineageGraph, flowStore の whereSubqueries 処理) は既に存在し、
 //   独立した nested queryBox と外部テーブル → サブクエリのエッジが自動描画される
+//
+// bd-sql_viz_202604_2-hnw: `conditionText` は `formatExprWithSubqueryAliases`
+// で構築され、サブクエリ AST の位置は alias (`[WHERE サブクエリ N]`) に置換される。
+// 例: `u.user_id IN (SELECT ... FROM orders ...)` → `u.user_id IN [WHERE サブクエリ 1]`
+// これにより本体 WHERE ラベルが簡潔になり、サブクエリは独立 box として描画される。
 
 // 条件式の整形 (bd-sql_viz_202604_2-hgg):
 // conditionText / onConditionText / expressionText は `formatExpr` で生成する。

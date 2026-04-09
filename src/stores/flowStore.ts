@@ -131,27 +131,28 @@ function applyCompactSizes<T extends FlowNode>(nodes: T[]): T[] {
 
 /**
  * table_dependency エッジの実際の target ノード ID を計算する
- * (bd-sql_viz_202604_2-q8n)。
+ * (bd-sql_viz_202604_2-q8n, bd-sql_viz_202604_2-hnw)。
  *
- * - 該当 QueryBox に `__clause__FROM` 子ノードがあり hidden でなければ
- *   FROM clauseBox の id を返す
+ * - 該当 QueryBox に `__clause__{type}` 子ノードがあり hidden でなければ
+ *   該当 clauseBox の id を返す（type は 'FROM' or 'WHERE'、デフォルト 'FROM'）
  * - それ以外（compact モード等）は targetTableId をそのまま返す
  */
 function computeTableDependencyTarget(
   targetTableId: string,
-  nodes: FlowNode[]
+  nodes: FlowNode[],
+  targetClauseType: 'FROM' | 'WHERE' = 'FROM'
 ): string {
-  const fromClauseId = `${targetTableId}__clause__FROM`;
-  const fromClause = nodes.find((n) => n.id === fromClauseId);
-  if (fromClause && !fromClause.hidden) {
-    return fromClauseId;
+  const clauseId = `${targetTableId}__clause__${targetClauseType}`;
+  const clauseNode = nodes.find((n) => n.id === clauseId);
+  if (clauseNode && !clauseNode.hidden) {
+    return clauseId;
   }
   return targetTableId;
 }
 
 /**
  * 全 table_dependency エッジを現在のノード状態に応じて再ターゲットする
- * (bd-sql_viz_202604_2-q8n)。
+ * (bd-sql_viz_202604_2-q8n, bd-sql_viz_202604_2-hnw)。
  */
 function retargetTableDependencyEdges(edges: FlowEdge[], nodes: FlowNode[]): FlowEdge[] {
   return edges.map((edge) => {
@@ -159,7 +160,8 @@ function retargetTableDependencyEdges(edges: FlowEdge[], nodes: FlowNode[]): Flo
     if (data?.dependencyType !== 'table_dependency') return edge;
     const targetTableId = data.targetTableId;
     if (!targetTableId) return edge;
-    const newTarget = computeTableDependencyTarget(targetTableId, nodes);
+    const clauseType = data.targetClauseType ?? 'FROM';
+    const newTarget = computeTableDependencyTarget(targetTableId, nodes, clauseType);
     if (edge.target === newTarget) return edge;
     return { ...edge, target: newTarget };
   });
@@ -606,6 +608,26 @@ function buildQueryBoxNodes(
       edges, edgeIdSet, globalTableIds
     );
     addNestedEdges(subNodeId, sub.tableNode);
+
+    // bd-sql_viz_202604_2-hnw: WHERE サブクエリ → 自身の WHERE clauseBox へのエッジ
+    // targetClauseType: 'WHERE' で retargetTableDependencyEdges が WHERE clauseBox に
+    // リダイレクトする。
+    const whereEdgeId = `edge-${subNodeId}-${tableId}-where`;
+    if (!edgeIdSet.has(whereEdgeId)) {
+      edgeIdSet.add(whereEdgeId);
+      edges.push({
+        id: whereEdgeId,
+        source: subNodeId,
+        target: tableId,
+        type: 'lineage',
+        data: {
+          dependencyType: 'table_dependency',
+          isHighlighted: false,
+          targetTableId: tableId,
+          targetClauseType: 'WHERE',
+        },
+      });
+    }
   }
 
   // detail モードの場合は main 句の ClauseBoxNode を実行順で横並びに生成する
