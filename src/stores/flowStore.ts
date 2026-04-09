@@ -382,7 +382,10 @@ function buildQueryBoxNodes(
   nestDepth: number,
   nodes: FlowNode[],
   displayModes: Map<string, DisplayMode>,
-  deferredMainClauses: Array<{ tableId: string; table: TableNode }>
+  deferredMainClauses: Array<{ tableId: string; table: TableNode }>,
+  edges: FlowEdge[],
+  edgeIdSet: Set<string>,
+  globalTableIds: Set<string>
 ): void {
   // displayMode を設定（未設定の場合はデフォルト 'detail'）
   if (!displayModes.has(tableId)) {
@@ -420,23 +423,69 @@ function buildQueryBoxNodes(
   // ネスト子ノード（CTE / FROMサブクエリ / WHEREサブクエリ）を生成する。
   // 位置 (x,y) は仮で (0,0) のまま放置し、syncFromLineage の post-pass で
   // arrangeTableNodes により依存順に左→右配置する (bd-sql_viz_202604_2-47d)。
+  //
+  // ネスト子のエッジ生成 (bd-sql_viz_202604_2-ce2):
+  // sibling 名 → nodeId のマップを作り、各子の dependsOn を解決してエッジを張る。
+  // - sibling 参照 → sibling nodeId へエッジ
+  // - グローバル tables 参照 → 外部テーブルからのエッジ
+  const siblingNameToId = new Map<string, string>();
+  for (const cte of table.ctes) {
+    siblingNameToId.set(cte.name, `${tableId}__cte__${cte.name}`);
+  }
+  for (const sub of table.fromSubqueries) {
+    siblingNameToId.set(sub.alias, `${tableId}__fromsub__${sub.alias}`);
+  }
+  for (const sub of table.whereSubqueries) {
+    siblingNameToId.set(sub.alias, `${tableId}__wheresub__${sub.alias}`);
+  }
+  const addNestedEdges = (childNodeId: string, childTable: TableNode): void => {
+    for (const depName of childTable.dependsOn) {
+      let sourceId: string | undefined;
+      if (siblingNameToId.has(depName)) {
+        sourceId = siblingNameToId.get(depName);
+      } else if (globalTableIds.has(depName)) {
+        sourceId = depName;
+      }
+      if (!sourceId || sourceId === childNodeId) continue;
+      const edgeId = `edge-${sourceId}-${childNodeId}`;
+      if (edgeIdSet.has(edgeId)) continue;
+      edgeIdSet.add(edgeId);
+      edges.push({
+        id: edgeId,
+        source: sourceId,
+        target: childNodeId,
+        type: 'lineage',
+        data: {
+          dependencyType: 'table_dependency',
+          isHighlighted: false,
+          targetTableId: childNodeId,
+        },
+      });
+    }
+  };
   for (const cte of table.ctes) {
     const cteNodeId = `${tableId}__cte__${cte.name}`;
     buildQueryBoxNodes(
-      cteNodeId, cte.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
+      cteNodeId, cte.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses,
+      edges, edgeIdSet, globalTableIds
     );
+    addNestedEdges(cteNodeId, cte.tableNode);
   }
   for (const sub of table.fromSubqueries) {
     const subNodeId = `${tableId}__fromsub__${sub.alias}`;
     buildQueryBoxNodes(
-      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
+      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses,
+      edges, edgeIdSet, globalTableIds
     );
+    addNestedEdges(subNodeId, sub.tableNode);
   }
   for (const sub of table.whereSubqueries) {
     const subNodeId = `${tableId}__wheresub__${sub.alias}`;
     buildQueryBoxNodes(
-      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
+      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses,
+      edges, edgeIdSet, globalTableIds
     );
+    addNestedEdges(subNodeId, sub.tableNode);
   }
 
   // detail モードの場合は main 句の ClauseBoxNode を実行順で横並びに生成する
@@ -491,10 +540,16 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // 子ノードのサイズ確定後（recalculateLayout 後）に遅延実行する。
     const deferredMainClauses: Array<{ tableId: string; table: TableNode }> = [];
 
+    // bd-sql_viz_202604_2-ce2: ネスト子のエッジ生成に使うグローバルテーブル ID 集合
+    const globalTableIds = new Set(tables.keys());
+
     for (const [tableId, table] of tables) {
       if (table.isRegistered && table.queryType !== 'unresolved') {
         // F1-8: CTE/サブクエリを含む QueryBoxNode を再帰的に生成
-        buildQueryBoxNodes(tableId, table, undefined, 0, nodes, displayModes, deferredMainClauses);
+        buildQueryBoxNodes(
+          tableId, table, undefined, 0, nodes, displayModes, deferredMainClauses,
+          edges, edgeIdSet, globalTableIds
+        );
       } else {
         // 未登録テーブルは UnresolvedBoxNode
         if (!displayModes.has(tableId)) {

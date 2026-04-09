@@ -362,6 +362,18 @@ interface UnresolvedBoxNodeData {
 
 ### 4.1 LineageEdge
 
+**ネスト子のエッジ生成** (bd-sql_viz_202604_2-ce2):
+ネスト子 (CTE / FROMサブクエリ / WHEREサブクエリ) の `dependsOn` からもエッジ
+を生成する。`buildQueryBoxNodes` が再帰的に `edges` / `edgeIdSet` / `globalTableIds`
+を持ち回り、各子 TableNode の `dependsOn` を以下の順で解決する:
+1. 同一親内の **sibling** (自レベルの CTE 名 / サブクエリ alias) → sibling の nodeId
+2. **グローバル tables** (外部テーブル、未登録含む) → テーブル名
+3. どちらでもない → skip
+
+例 (`04_cte_with.sql`):
+- `orders`（unresolved）→ `...__cte__monthly_sales` (外部参照エッジ)
+- `...__cte__monthly_sales` → `...__cte__ranked_users` (sibling エッジ)
+
 **動的 target リダイレクト** (bd-sql_viz_202604_2-q8n):
 
 `table_dependency` エッジは target 側 QueryBox の表示モードに応じて接続先を切り替える。
