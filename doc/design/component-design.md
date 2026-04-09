@@ -401,9 +401,18 @@ interface UnresolvedBoxNodeData {
 2. **グローバル tables** (外部テーブル、未登録含む) → テーブル名
 3. どちらでもない → skip
 
+**親クエリ → 自CTE 参照のエッジ生成** (bd-sql_viz_202604_2-icu):
+親クエリの `FROM ranked_users` のように、親自身の CTE を参照するケースを
+処理する。`syncFromLineage` の main loop で対象テーブルの `ctes` / `fromSubqueries`
+/ `whereSubqueries` から `ownNestedNameToId` を構築し、`dependsOn` の解決時に
+global tables より優先してネスト子の nodeId を source にする。
+targetTableId は親の tableId のまま保持し、`retargetTableDependencyEdges` で
+main FROM clauseBox にリダイレクトされる。
+
 例 (`04_cte_with.sql`):
 - `orders`（unresolved）→ `...__cte__monthly_sales` (外部参照エッジ)
 - `...__cte__monthly_sales` → `...__cte__ranked_users` (sibling エッジ)
+- `...__cte__ranked_users` → main query (親 CTE 参照エッジ、icu で追加)
 
 **動的 target リダイレクト** (bd-sql_viz_202604_2-q8n):
 
