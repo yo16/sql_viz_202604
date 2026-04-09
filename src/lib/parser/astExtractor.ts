@@ -185,28 +185,39 @@ function extractFromClause(fromList: any[], rawSql: string): FromClause {
   }
 
   for (const item of fromList) {
-    // Subquery in FROM
-    if (item.expr && item.expr.ast) {
+    const isSubquery = item.expr && item.expr.ast;
+    const hasJoin = !!item.join;
+
+    // Subquery in FROM — subqueries 配列に登録（JOIN と排他ではない）
+    // bd-sql_viz_202604_2-ih7: 以前はここで continue して JOIN 情報を捨てていた
+    if (isSubquery) {
       const subAlias = item.as ?? '[サブクエリ]';
       const subQuery = buildParsedQuery(item.expr.ast, rawSql, null, 'select');
       subqueries.push({ alias: subAlias, query: subQuery });
-      continue;
     }
 
-    // JOIN
-    if (item.join) {
+    // JOIN — subquery の JOIN もここで記録する (bd-sql_viz_202604_2-ih7)
+    // table はサブクエリの alias を使う。これにより dependsOn や FROM ラベルが
+    // 正しく構築される。
+    if (hasJoin) {
       const joinType = normalizeJoinType(item.join);
       const onRefs = item.on ? collectColumnRefsFromExpr(item.on) : [];
       const onText = item.on ? formatExpr(item.on) : '';
+      const joinTable: string = isSubquery
+        ? (item.as ?? '[サブクエリ]')
+        : item.table;
       joins.push({
         joinType,
-        table: item.table,
-        alias: item.as ?? null,
+        table: joinTable,
+        alias: isSubquery ? null : (item.as ?? null),
         onConditionRefs: onRefs,
         onConditionText: onText,
       });
       continue;
     }
+
+    // Subquery without JOIN (e.g., the first FROM item) — continue after recording
+    if (isSubquery) continue;
 
     // Regular table
     if (item.table) {
