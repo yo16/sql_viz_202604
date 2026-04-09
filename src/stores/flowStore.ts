@@ -12,6 +12,7 @@ import type {
   UnresolvedBoxNodeData,
   ClauseBoxNodeData,
   ColumnItemNodeData,
+  LineageEdgeData,
 } from '@/types/flow';
 import { recalculateLayout } from '@/layout/recalculateLayout';
 import { arrangeTableNodes } from '@/layout/tableFlowLayout';
@@ -81,6 +82,42 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
   }
 
   return result;
+}
+
+/**
+ * table_dependency エッジの実際の target ノード ID を計算する
+ * (bd-sql_viz_202604_2-q8n)。
+ *
+ * - 該当 QueryBox に `__clause__FROM` 子ノードがあり hidden でなければ
+ *   FROM clauseBox の id を返す
+ * - それ以外（compact モード等）は targetTableId をそのまま返す
+ */
+function computeTableDependencyTarget(
+  targetTableId: string,
+  nodes: FlowNode[]
+): string {
+  const fromClauseId = `${targetTableId}__clause__FROM`;
+  const fromClause = nodes.find((n) => n.id === fromClauseId);
+  if (fromClause && !fromClause.hidden) {
+    return fromClauseId;
+  }
+  return targetTableId;
+}
+
+/**
+ * 全 table_dependency エッジを現在のノード状態に応じて再ターゲットする
+ * (bd-sql_viz_202604_2-q8n)。
+ */
+function retargetTableDependencyEdges(edges: FlowEdge[], nodes: FlowNode[]): FlowEdge[] {
+  return edges.map((edge) => {
+    const data = edge.data as LineageEdgeData | undefined;
+    if (data?.dependencyType !== 'table_dependency') return edge;
+    const targetTableId = data.targetTableId;
+    if (!targetTableId) return edge;
+    const newTarget = computeTableDependencyTarget(targetTableId, nodes);
+    if (edge.target === newTarget) return edge;
+    return { ...edge, target: newTarget };
+  });
 }
 
 /**
@@ -479,6 +516,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
       // テーブル間のエッジを生成（dependsOn から）
       // 重複エッジ防止のため edgeIds Set で管理
+      // bd-sql_viz_202604_2-q8n: targetTableId を保持し、target は post-pass で
+      // FROM clauseBox にリダイレクトする
       for (const depTableId of table.dependsOn) {
         if (tables.has(depTableId)) {
           const edgeId = `edge-${depTableId}-${tableId}`;
@@ -487,9 +526,13 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
             edges.push({
               id: edgeId,
               source: depTableId,  // 上流
-              target: tableId,     // 下流
+              target: tableId,     // 下流（後段で FROM clauseBox に再ターゲット）
               type: 'lineage',
-              data: { dependencyType: 'table_dependency', isHighlighted: false },
+              data: {
+                dependencyType: 'table_dependency',
+                isHighlighted: false,
+                targetTableId: tableId,
+              },
             });
           }
         }
@@ -607,7 +650,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const arrangedRoots = arrangeTableNodes(rootNodes as Node[], tableDependencies) as FlowNode[];
     const finalNodes = [...arrangedRoots, ...nonRootNodes];
 
-    set({ nodes: finalNodes, edges, displayModes });
+    // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
+    const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
+
+    set({ nodes: finalNodes, edges: finalEdges, displayModes });
   },
 
   toggleDisplayMode: (tableId: string) => {
@@ -641,9 +687,12 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     });
 
     // recalculateLayout でボトムアップにサイズ再計算
-    const recalculated = recalculateLayout(updatedNodes);
+    const recalculated = recalculateLayout(updatedNodes) as FlowNode[];
 
-    set({ nodes: recalculated as typeof state.nodes, displayModes });
+    // bd-sql_viz_202604_2-q8n: 表示モード変更後 table_dependency エッジを再ターゲット
+    const retargetedEdges = retargetTableDependencyEdges(state.edges, recalculated);
+
+    set({ nodes: recalculated as typeof state.nodes, edges: retargetedEdges, displayModes });
   },
 
   /**

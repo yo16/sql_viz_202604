@@ -519,14 +519,16 @@ test('統合: registerTables → syncFromLineage のパイプラインでエッ�
   // source_raw→intermediate, intermediate→final_output, dim_lookup→final_output の3エッジ
   assert(edges.length === 3, \`should have 3 edges, got \${edges.length}: \${edges.map(e=>e.id).join(', ')}\`);
 
-  const edgeSrcToMid = edges.find(e => e.source === 'source_raw' && e.target === 'intermediate');
+  // bd-q8n: target は detail モード時 FROM clauseBox に再ターゲットされる。
+  // targetTableId に元の QueryBox id が保持されている。
+  const edgeSrcToMid = edges.find(e => e.source === 'source_raw' && (e.data as any).targetTableId === 'intermediate');
   assert(edgeSrcToMid !== undefined, 'edge source_raw→intermediate should exist');
   assert((edgeSrcToMid!.data as any).dependencyType === 'table_dependency', 'edge should be table_dependency');
 
-  const edgeMidToFinal = edges.find(e => e.source === 'intermediate' && e.target === 'final_output');
+  const edgeMidToFinal = edges.find(e => e.source === 'intermediate' && (e.data as any).targetTableId === 'final_output');
   assert(edgeMidToFinal !== undefined, 'edge intermediate→final_output should exist');
 
-  const edgeDimToFinal = edges.find(e => e.source === 'dim_lookup' && e.target === 'final_output');
+  const edgeDimToFinal = edges.find(e => e.source === 'dim_lookup' && (e.data as any).targetTableId === 'final_output');
   assert(edgeDimToFinal !== undefined, 'edge dim_lookup→final_output should exist');
 });
 
@@ -550,7 +552,10 @@ test('統合: Unresolved テーブルへのエッジも生成される', () => {
   assert(edges.length === 1, \`should have 1 edge (including unresolved), got \${edges.length}\`);
   const edge = edges[0];
   assert(edge.source === 'unregistered_src', \`source should be 'unregistered_src', got '\${edge.source}'\`);
-  assert(edge.target === 'output_table', \`target should be 'output_table', got '\${edge.target}'\`);
+  // bd-q8n: detail モードなので target は FROM clauseBox にリダイレクト、
+  // targetTableId が元の QueryBox id を保持
+  assert((edge.data as any).targetTableId === 'output_table',
+    \`targetTableId should be 'output_table', got '\${(edge.data as any).targetTableId}'\`);
 });
 
 // Output

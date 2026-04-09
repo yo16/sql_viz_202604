@@ -124,7 +124,11 @@ test('edges are synced from lineageStore dependencies', () => {
     useLineageStore.getState().addQuery(q);
     const flowState = useFlowStore.getState();
     assert(flowState.edges.length >= 1, 'has edges');
-    assert(flowState.edges.some(e => e.source === 'source' && e.target === 'output'), 'correct edge');
+    // bd-q8n: target は detail モード時 FROM clauseBox にリダイレクト。
+    // targetTableId に元の QueryBox id (output) が保持される
+    assert(flowState.edges.some(e =>
+      e.source === 'source' && (e.data as any)?.targetTableId === 'output'
+    ), 'correct edge');
   } finally {
     unsub();
   }

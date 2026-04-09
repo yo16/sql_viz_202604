@@ -85,6 +85,12 @@ export interface LineageEdgeData {
   isHighlighted: boolean;
   /** フォーカス効果: ハイライト発動中で、このエッジが対象外のためフェードすべきか */
   isDimmed?: boolean;
+  /**
+   * table_dependency 用: 元の target テーブル ID（QueryBox/UnresolvedBox の id）。
+   * detail/compact 切替時に edge.target を動的に再計算するために保持する。
+   * (bd-sql_viz_202604_2-q8n)
+   */
+  targetTableId?: string;
 }
 
 /** カスタムエッジ型 */
