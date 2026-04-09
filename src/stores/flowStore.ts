@@ -362,73 +362,26 @@ function buildQueryBoxNodes(
   // 省略されている場合は子ノードを生成しない
   if (isOmitted) return;
 
-  // CTE 子ノードを水平に配置（LEFT → RIGHT）
-  let cteX = LAYOUT.PADDING_HORIZONTAL;
-  const cteY = LAYOUT.PADDING_TOP;
+  // ネスト子ノード（CTE / FROMサブクエリ / WHEREサブクエリ）を生成する。
+  // 位置 (x,y) は仮で (0,0) のまま放置し、syncFromLineage の post-pass で
+  // arrangeTableNodes により依存順に左→右配置する (bd-sql_viz_202604_2-47d)。
   for (const cte of table.ctes) {
     const cteNodeId = `${tableId}__cte__${cte.name}`;
     buildQueryBoxNodes(
-      cteNodeId,
-      cte.tableNode,
-      tableId,
-      nestDepth + 1,
-      nodes,
-      displayModes,
-      deferredMainClauses
+      cteNodeId, cte.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
     );
-    // 生成されたノードに位置を設定
-    const cteNode = nodes.find((n) => n.id === cteNodeId);
-    if (cteNode) {
-      cteNode.position = { x: cteX, y: cteY };
-      const cteWidth = cteNode.width ?? LAYOUT.QUERY_BOX_MIN_WIDTH;
-      cteX += cteWidth + LAYOUT.CTE_GAP_HORIZONTAL;
-    }
-  }
-
-  // FROM サブクエリ子ノードを垂直に配置
-  let fromSubY = LAYOUT.PADDING_TOP;
-  // CTE がある場合は CTE の下に配置
-  if (table.ctes.length > 0) {
-    fromSubY = LAYOUT.PADDING_TOP + LAYOUT.QUERY_BOX_MIN_HEIGHT + LAYOUT.CHILD_GAP_VERTICAL;
   }
   for (const sub of table.fromSubqueries) {
     const subNodeId = `${tableId}__fromsub__${sub.alias}`;
     buildQueryBoxNodes(
-      subNodeId,
-      sub.tableNode,
-      tableId,
-      nestDepth + 1,
-      nodes,
-      displayModes,
-      deferredMainClauses
+      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
     );
-    const subNode = nodes.find((n) => n.id === subNodeId);
-    if (subNode) {
-      subNode.position = { x: LAYOUT.PADDING_HORIZONTAL, y: fromSubY };
-      const subHeight = subNode.height ?? LAYOUT.QUERY_BOX_MIN_HEIGHT;
-      fromSubY += subHeight + LAYOUT.CHILD_GAP_VERTICAL;
-    }
   }
-
-  // WHERE サブクエリ子ノードを垂直に配置（FROM サブクエリの下）
-  let whereSubY = fromSubY;
   for (const sub of table.whereSubqueries) {
     const subNodeId = `${tableId}__wheresub__${sub.alias}`;
     buildQueryBoxNodes(
-      subNodeId,
-      sub.tableNode,
-      tableId,
-      nestDepth + 1,
-      nodes,
-      displayModes,
-      deferredMainClauses
+      subNodeId, sub.tableNode, tableId, nestDepth + 1, nodes, displayModes, deferredMainClauses
     );
-    const subNode = nodes.find((n) => n.id === subNodeId);
-    if (subNode) {
-      subNode.position = { x: LAYOUT.PADDING_HORIZONTAL, y: whereSubY };
-      const subHeight = subNode.height ?? LAYOUT.QUERY_BOX_MIN_HEIGHT;
-      whereSubY += subHeight + LAYOUT.CHILD_GAP_VERTICAL;
-    }
   }
 
   // detail モードの場合は main 句の ClauseBoxNode を実行順で横並びに生成する
@@ -553,14 +506,63 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // 1回目の recalculateLayout: ネスト子ノードのサイズを確定させる
     let recalculated = recalculateLayout(sortedNodes as Node[]) as FlowNode[];
 
-    // 遅延されていた main clauseBox 群を生成する（bd-sql_viz_202604_2-u8l）
-    // ネスト子の最下端を算出し、その直下に main 句群を横並びで配置 (bd-q82)
+    // 遅延されていた main clauseBox 群を生成する（bd-sql_viz_202604_2-u8l）。
+    // ネスト子のサイズ確定後に位置決めするため deferred で処理する。
+    // bd-sql_viz_202604_2-47d: ネスト子も依存順で arrangeTableNodes により再配置する。
     if (deferredMainClauses.length > 0) {
       for (const { tableId, table } of deferredMainClauses) {
+        // 1. ネスト子（直下の queryBox）を集める
         const childNodes = recalculated.filter(
           (n) => n.parentId === tableId && n.type === 'queryBox'
         );
-        let y = LAYOUT.PADDING_TOP;
+
+        // 2. ネスト子間の依存エッジを構築する (bd-47d)
+        //    sibling-name → cteNodeId/subNodeId のマップを作る
+        const siblingNameToId = new Map<string, string>();
+        for (const cte of table.ctes) {
+          siblingNameToId.set(cte.name, `${tableId}__cte__${cte.name}`);
+        }
+        for (const sub of table.fromSubqueries) {
+          siblingNameToId.set(sub.alias, `${tableId}__fromsub__${sub.alias}`);
+        }
+        for (const sub of table.whereSubqueries) {
+          siblingNameToId.set(sub.alias, `${tableId}__wheresub__${sub.alias}`);
+        }
+        // 各ネスト子の dependsOn から sibling 参照を抽出
+        const siblingDeps: Array<{ source: string; target: string }> = [];
+        const childIdToTableNode = new Map<string, TableNode>();
+        for (const cte of table.ctes) {
+          childIdToTableNode.set(`${tableId}__cte__${cte.name}`, cte.tableNode);
+        }
+        for (const sub of table.fromSubqueries) {
+          childIdToTableNode.set(`${tableId}__fromsub__${sub.alias}`, sub.tableNode);
+        }
+        for (const sub of table.whereSubqueries) {
+          childIdToTableNode.set(`${tableId}__wheresub__${sub.alias}`, sub.tableNode);
+        }
+        for (const [childId, childTable] of childIdToTableNode) {
+          for (const depName of childTable.dependsOn) {
+            const sourceId = siblingNameToId.get(depName);
+            if (sourceId && sourceId !== childId) {
+              siblingDeps.push({ source: sourceId, target: childId });
+            }
+          }
+        }
+
+        // 3. arrangeTableNodes で childNodes を依存順に左→右配置
+        if (childNodes.length > 0) {
+          arrangeTableNodes(childNodes as Node[], siblingDeps);
+          // arrangeTableNodes は (0,0) 始点で配置するので親内パディング分オフセット
+          for (const c of childNodes) {
+            c.position = {
+              x: c.position.x + LAYOUT.PADDING_HORIZONTAL,
+              y: c.position.y + LAYOUT.PADDING_TOP,
+            };
+          }
+        }
+
+        // 4. ネスト子の最下端を算出し、main clauseBox を横並びでその下に配置
+        let mainY = LAYOUT.PADDING_TOP;
         if (childNodes.length > 0) {
           const maxBottom = Math.max(
             ...childNodes.map((n) => {
@@ -568,11 +570,11 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
               return n.position.y + h;
             })
           );
-          y = maxBottom + LAYOUT.CHILD_GAP_VERTICAL;
+          mainY = maxBottom + LAYOUT.CHILD_GAP_VERTICAL;
         }
-        buildMainClauseNodes(tableId, table, tableId, LAYOUT.PADDING_HORIZONTAL, y, recalculated);
+        buildMainClauseNodes(tableId, table, tableId, LAYOUT.PADDING_HORIZONTAL, mainY, recalculated);
       }
-      // 2回目の recalculateLayout: 追加された main clauseBox を含めて親サイズ再計算
+      // 2回目の recalculateLayout: ネスト子の再配置と main clauseBox を含めて親サイズ再計算
       const resortedNodes = sortNodesParentFirst(recalculated);
       recalculated = recalculateLayout(resortedNodes as Node[]) as FlowNode[];
     }

@@ -476,6 +476,41 @@ function arrangeTableNodes(
 
 ---
 
+## 7.4 ネスト子の依存順横並びレイアウト (bd-sql_viz_202604_2-47d)
+
+CTE / FROMサブクエリ / WHEREサブクエリ などの**ネスト子**は、親 QueryBox の中で
+依存順に左→右で並べる。アルゴリズムは §7 の `arrangeTableNodes` をそのまま流用。
+
+### 依存エッジの構築
+
+ネスト子間の参照は、内部 TableNode の `dependsOn`（FROM/JOIN 由来のテーブル名集合）
+に現れる。これを sibling のIDに解決して `arrangeTableNodes` の dependencies 引数
+に渡す。
+
+```
+sibling-name → child-id のマップ:
+  cte.name           → ${tableId}__cte__${cte.name}
+  fromSub.alias      → ${tableId}__fromsub__${alias}
+  whereSub.alias     → ${tableId}__wheresub__${alias}
+```
+
+各ネスト子について、`childTable.dependsOn` を走査し、sibling-name にヒットする
+ものがあれば `{source: siblingId, target: currentId}` を依存エッジとして追加する。
+
+### タイミング
+
+ネスト子の幅は内部の clauseBox 群を含めて確定するため、`recalculateLayout` 後の
+post-pass で実行する必要がある。`syncFromLineage` の deferred 処理（§7.5）と
+同じパスで:
+
+1. `recalculateLayout` 1回目 → ネスト子のサイズ確定
+2. 各 deferred 親について `arrangeTableNodes(childNodes, siblingDeps)` を呼ぶ
+3. 結果に親パディング `(PADDING_HORIZONTAL, PADDING_TOP)` をオフセット
+4. ネスト子の最下端を計算し、その下に main clauseBox を横並び配置
+5. `recalculateLayout` 2回目 → 親サイズ再計算
+
+---
+
 ## 7.5 メインクエリ clauseBox の遅延配置 (bd-sql_viz_202604_2-u8l)
 
 CTE / FROMサブクエリ / WHEREサブクエリを持つ親クエリでも、メインクエリの
