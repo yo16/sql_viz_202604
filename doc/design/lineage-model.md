@@ -192,6 +192,13 @@ type SqlDialect = 'BigQuery' | 'PostgreSQL' | 'MySQL' | 'SQLite';
 
 ### ステップ1: registerTables
 
+**CTE名は未登録扱いしない** (bd-sql_viz_202604_2-r11):
+トップレベルクエリの FROM/JOIN 参照が CTE 名と一致する場合、`createUnresolvedTableNode`
+を呼ばない。CTE は親 TableNode の `ctes` 配列にネスト構造として保持され、
+グローバル `tables` マップには登録されない。そのため単純に `!tables.has(name)`
+で判定すると CTE 参照も未登録扱いされてしまう。クエリごとに `cteNames` 集合を
+作り、FROM/JOIN チェックで skip する。
+
 ```typescript
 // lib/lineage/buildLineageGraph.ts
 
