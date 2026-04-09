@@ -166,6 +166,66 @@ function retargetTableDependencyEdges(edges: FlowEdge[], nodes: FlowNode[]): Flo
 }
 
 /**
+ * 左列 clauseBox の実行順 (bd-sql_viz_202604_2-ogr)。
+ * 再スタック処理で y 座標を決定する順序。
+ */
+const LEFT_COLUMN_CLAUSE_ORDER: Array<ClauseBoxNodeData['clauseType']> = [
+  'FROM',
+  'WHERE',
+  'GROUP BY',
+  'HAVING',
+  'ORDER BY',
+];
+
+/**
+ * 指定した親 QueryBox の左列 clauseBox 群を実行順で縦積みしなおす
+ * (bd-sql_viz_202604_2-ogr)。
+ *
+ * 各 clauseBox の現在の height (折りたたみ/展開後のサイズ) を尊重し、
+ * 先頭の y 座標から順に積み上げる。recalculateLayout でサイズが未設定の
+ * clauseBox は CLAUSE_HEADER_HEIGHT をフォールバックとして使用する。
+ */
+function restackLeftColumnClauses<T extends FlowNode>(
+  nodes: T[],
+  parentId: string
+): T[] {
+  const leftClauses = nodes
+    .filter(
+      (n) =>
+        n.type === 'clauseBox' &&
+        n.parentId === parentId &&
+        LEFT_COLUMN_CLAUSE_ORDER.includes(
+          (n.data as ClauseBoxNodeData).clauseType
+        )
+    )
+    .sort((a, b) => {
+      const ai = LEFT_COLUMN_CLAUSE_ORDER.indexOf((a.data as ClauseBoxNodeData).clauseType);
+      const bi = LEFT_COLUMN_CLAUSE_ORDER.indexOf((b.data as ClauseBoxNodeData).clauseType);
+      return ai - bi;
+    });
+
+  if (leftClauses.length === 0) return nodes;
+
+  // 先頭の位置を起点とする
+  const first = leftClauses[0];
+  const startX = first.position.x;
+  let y = first.position.y;
+
+  const updatedPositions = new Map<string, { x: number; y: number }>();
+  for (const clause of leftClauses) {
+    updatedPositions.set(clause.id, { x: startX, y });
+    const h = clause.height ?? LAYOUT.CLAUSE_HEADER_HEIGHT;
+    y += h + LAYOUT.CHILD_GAP_VERTICAL;
+  }
+
+  return nodes.map((n) => {
+    const pos = updatedPositions.get(n.id);
+    if (!pos) return n;
+    return { ...n, position: pos };
+  });
+}
+
+/**
  * ClauseBoxNode を縦展開した時の高さを概算する (bd-sql_viz_202604_2-oi5)。
  * label の文字数と clauseBox 幅から折り返し行数を見積もる。
  *
@@ -836,8 +896,16 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       };
     });
 
-    // 親 QueryBox サイズを再計算
-    const recalculated = recalculateLayout(updatedNodes);
+    // bd-sql_viz_202604_2-ogr: 左列 clauseBox は高さ変化に応じて下の兄弟を
+    // ずらさないと重なる。対象の親 QueryBox 内で左列を再スタックする。
+    const parentId = target.parentId;
+    const restacked =
+      parentId !== undefined && LEFT_COLUMN_CLAUSE_ORDER.includes(data.clauseType)
+        ? restackLeftColumnClauses(updatedNodes as FlowNode[], parentId)
+        : updatedNodes;
+
+    // 親 QueryBox サイズを再計算 (ボトムアップで拡張される)
+    const recalculated = recalculateLayout(restacked as Node[]);
     set({ nodes: recalculated as typeof state.nodes });
   },
 
