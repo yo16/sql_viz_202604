@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback } from 'react';
-import type { NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ClauseBoxNodeData } from '@/types/flow';
 import { useFlowStore } from '@/stores/flowStore';
 import styles from './ClauseBoxNode.module.css';
@@ -57,6 +57,11 @@ function ClauseBoxNodeComponent({ data, id }: NodeProps) {
 
   return (
     <div className={containerClass}>
+      {/* FROM clauseBox にはテーブル間 table_dependency エッジの target Handle を持たせる
+          (bd-sql_viz_202604_2-q8n) */}
+      {clauseType === 'FROM' && (
+        <Handle type="target" position={Position.Left} className={styles.handle} />
+      )}
       <div
         className={styles.header}
         onClick={isExpandable ? handleToggle : undefined}

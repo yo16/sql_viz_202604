@@ -244,6 +244,11 @@ interface ClauseBoxNodeData {
 - 展開高さは label の文字数から `computeExpandedClauseHeight` で概算
 - SELECT 句は ColumnItem 子があるため対象外（toggle 呼出も no-op）
 
+**エッジ接続用 Handle** (bd-sql_viz_202604_2-q8n):
+- `clauseType === 'FROM'` の clauseBox には `<Handle type="target" position="left">` を持たせる
+- `table_dependency` エッジは target 表示モードに応じて動的にこの Handle へ接続される
+  （詳細は §4.1 LineageEdge を参照）
+
 **句タイプ別の生成ルール** (bd-sql_viz_202604_2-c69 / bd-sql_viz_202604_2-q82):
 - **FROM**: `buildFromClauseNode`。ラベルにテーブル一覧と JOIN 情報（例: `users` / `a INNER JOIN b ON a.id = b.a_id`）
 - **WHERE**: `buildWhereClauseNode`。ラベルに条件式（`conditionText`）
@@ -347,6 +352,25 @@ interface UnresolvedBoxNodeData {
 ## 4. カスタムエッジ
 
 ### 4.1 LineageEdge
+
+**動的 target リダイレクト** (bd-sql_viz_202604_2-q8n):
+
+`table_dependency` エッジは target 側 QueryBox の表示モードに応じて接続先を切り替える。
+
+- **target が detail モード**: target の FROM clauseBox (`${tid}__clause__FROM`) の左端 Handle に接続
+- **target が compact モード**: target の QueryBox (`${tid}`) の左端中央に接続（FROM clauseBox は hidden のため）
+
+実装:
+- `LineageEdgeData` に `targetTableId?: string` を保持（元の QueryBox id）
+- `flowStore` のヘルパー `computeTableDependencyTarget(targetTableId, nodes)` が
+  現在の `targetTableId__clause__FROM` ノードの存在と hidden 状態を見て、
+  適切な target id を返す
+- `retargetTableDependencyEdges(edges, nodes)` が全 `table_dependency` エッジに
+  対して再ターゲットを実行
+- `syncFromLineage` の最後と `toggleDisplayMode` の最後で再ターゲットを呼ぶ
+- `column_lineage` エッジは現状維持（columnItem ノードに直接接続）
+- source 側は常に source QueryBox の右端中央（変更なし）
+
 
 対応機能要件: F2-1, F2-3
 

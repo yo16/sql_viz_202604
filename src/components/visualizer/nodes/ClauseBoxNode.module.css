@@ -61,3 +61,10 @@
   white-space: normal;
   word-break: break-word;
 }
+
+.handle {
+  width: 8px;
+  height: 8px;
+  background: var(--color-border-clause);
+  border: 1px solid var(--color-bg-node);
+}

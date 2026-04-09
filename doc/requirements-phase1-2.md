@@ -124,6 +124,11 @@ DWH構築時に使用される膨大なSQLクエリ群の**カラムレベルリ
 - レイアウト: 左→右方向のフロー
   - あるboxの右端から出るエッジが別boxの左端に接続する場合、前者を左、後者を右に配置する（トポロジカル順）
   - 実装: `arrangeTableNodes()` を `syncFromLineage` から呼び出し、`table_dependency` エッジに基づきレイヤーごとに x 座標を割り当てる（bd-sql_viz_202604_2-z0e）
+- **エッジの接続先 Handle** (bd-sql_viz_202604_2-q8n):
+  - target が **detail モード**: target QueryBox の **FROM clauseBox** の左端に接続
+  - target が **compact モード**: target QueryBox 全体の左端中央に接続
+  - source 側は常に source QueryBox の右端中央
+  - 対象は `table_dependency` エッジのみ。`column_lineage` エッジは columnItem に直接接続される現状動作を維持
 
 #### F2-2: 未認識テーブルの扱い
 
