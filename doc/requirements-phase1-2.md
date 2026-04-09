@@ -66,7 +66,10 @@ DWH構築時に使用される膨大なSQLクエリ群の**カラムレベルリ
   - ドラッグ可能なのは**ルートのQueryBox/UnresolvedBoxのみ**。内部のClauseBox（SELECT/FROM/WHERE）および ColumnItem は固定でドラッグ不可（bd-sql_viz_202604_2-35o）
 - boxクリックでの表示モード切替（トグル）:
   - **詳細表示**: クエリの全句構造を展開表示
-    - 句の表示順は SQL 実行順に従い**左から右へ**: `FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY`（bd-sql_viz_202604_2-q82）
+    - 句は**2 列レイアウト**で表示する（bd-sql_viz_202604_2-8ud）:
+      - **左列**: SELECT 以外の句 (`FROM → WHERE → GROUP BY → HAVING → ORDER BY`) を実行順で縦積み
+      - **右列**: SELECT 句（列リストを持つため列数に応じて高さが伸びる）
+      - 以前 (bd-q82) は 6 句を全て横一列に配置していたが、展開時の幅が大きすぎるため 2 列に変更
     - SELECT句: ClauseBoxNode 内に各カラムを ColumnItemNode として表示
     - FROM句: ClauseBoxNode のラベルに参照テーブル名と JOIN 情報を表示（bd-sql_viz_202604_2-c69）
     - WHERE/GROUP BY/HAVING/ORDER BY: ClauseBoxNode のラベルに条件式・式テキストを表示

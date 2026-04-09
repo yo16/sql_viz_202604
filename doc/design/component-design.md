@@ -274,12 +274,30 @@ interface ClauseBoxNodeData {
 - **SELECT**: `buildSelectClauseNodes`。ヘッダ + ColumnItemNode 子群
 - **ORDER BY**: `buildOrderByClauseNode`。ラベルに `expressionText`
 
-**配置順 (実行順を可視化、bd-sql_viz_202604_2-q82)**:
-- 親 QueryBox の detail モード時、`buildMainClauseNodes` が以下の順で**横並び**に配置:
-  - `FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY`
-- 全 clauseBox は同じ y 座標 (`PADDING_TOP`) を共有し、x 座標を `width + CHILD_GAP_HORIZONTAL` ずつ進める
-- 該当する句が無い場合（例: WHERE が null）はその clauseBox を生成しない（左詰めで詰める）
-- 親 QueryBox の幅は全 clauseBox の合計幅 + パディング、高さは最も背の高い clauseBox（通常は SELECT、カラム数に応じて伸びる）に合わせて自動算出される
+**配置 (2列レイアウト、bd-sql_viz_202604_2-q82 → bd-sql_viz_202604_2-8ud)**:
+親 QueryBox の detail モード時、`buildMainClauseNodes` が 2 列構成で配置する。
+横幅が長くなりすぎないようにするのが目的。
+
+```
++----------+  +-----------+
+|  FROM    |  |           |
++----------+  |           |
+|  WHERE   |  |  SELECT   |
++----------+  |   col1    |
+| GROUP BY |  |   col2    |
++----------+  |   ...     |
+|  HAVING  |  |           |
++----------+  +-----------+
+| ORDER BY |
++----------+
+```
+
+- **左列**: SELECT 以外 (FROM → WHERE → GROUP BY → HAVING → ORDER BY) を
+  実行順で**縦積み**。該当句が無い場合はその clauseBox を生成せず上詰めで詰める
+- **右列**: SELECT を左列の右に配置 (x = `startX + QUERY_BOX_MIN_WIDTH + CHILD_GAP_HORIZONTAL`、
+  y = `startY`)。SELECT の高さは columnItem の数に追従する
+- 以前 (bd-q82) は 6 句全てを横一列に並べていたが、展開時の幅が大きすぎるため
+  bd-sql_viz_202604_2-8ud で 2 列レイアウトに変更
 
 **FROM句の特殊表示**:
 - テーブル一覧を表示
