@@ -71,7 +71,7 @@ test('04_cte_with: CTE children do not overlap (distinct x)', () => {
   } finally { unsub(); }
 });
 
-test('04_cte_with: main clauseBoxes still positioned below CTE children', () => {
+test('04_cte_with: main clauseBoxes positioned to the RIGHT of CTE children (bd-hk1)', () => {
   const unsub = setup('04_cte_with.sql');
   try {
     const nodes = useFlowStore.getState().nodes;
@@ -79,13 +79,13 @@ test('04_cte_with: main clauseBoxes still positioned below CTE children', () => 
       n.type === 'queryBox' && !n.id.includes('__cte__') && (n as any).parentId === undefined
     )!;
     const cteNodes = nodes.filter((n: any) => (n as any).parentId === top.id && n.type === 'queryBox');
-    const cteMaxBottom = Math.max(...cteNodes.map((n: any) => {
-      const h = n.height ?? n.measured?.height ?? 80;
-      return n.position.y + h;
+    const cteMaxRight = Math.max(...cteNodes.map((n: any) => {
+      const w = n.width ?? n.measured?.width ?? 220;
+      return n.position.x + w;
     }));
     const mainSelect = nodes.find((n: any) => n.id === top.id + '__clause__SELECT')!;
-    assert(mainSelect.position.y >= cteMaxBottom,
-      'main SELECT should be below CTE children');
+    assert(mainSelect.position.x >= cteMaxRight,
+      'main SELECT x (' + mainSelect.position.x + ') should be >= CTE max right (' + cteMaxRight + ')');
   } finally { unsub(); }
 });
 
