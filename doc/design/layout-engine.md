@@ -553,6 +553,24 @@ main clauseBox の Y 位置を決めようとすると、子ノードの実際�
 
 ---
 
+## 7.6 compact モード QueryBox のサイズ (bd-sql_viz_202604_2-n5t)
+
+compact モードでは全ての子ノード (clauseBox, columnItem 等) が `hidden: true`
+になり、`calculateParentSize` は `visibleChildren.length === 0` として
+`QUERY_BOX_MIN_HEIGHT` (80) を返してしまう。しかし compact 本体には
+`compactColumns` から列名リストが表示されるため、列数に追従した高さが必要。
+
+**サイズ算出** (`computeCompactNodeSize(numColumns)`):
+- `width`: `LAYOUT.COMPACT_NODE_WIDTH` (200) 固定
+- `height`: `COMPACT_BASE_HEIGHT + min(numColumns, COMPACT_MAX_COLUMNS) * COMPACT_COLUMN_ROW_HEIGHT`
+  - 列数が上限を超える場合は `+more` 行ぶん (COMPACT_COLUMN_ROW_HEIGHT) を追加
+
+**適用タイミング** (`applyCompactSizes`):
+- `syncFromLineage` 末尾で recalculateLayout 後に post-process
+- `toggleDisplayMode` 末尾で recalculateLayout 後に post-process
+
+---
+
 ## 8. ネスト上限の処理 (F1-8)
 
 要件: ネスト上限5段まで分析・表示。6段以上は省略表示。

@@ -85,6 +85,42 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
 }
 
 /**
+ * compact モードの QueryBox サイズを列数から算出する (bd-sql_viz_202604_2-n5t)。
+ * - width: LAYOUT.COMPACT_NODE_WIDTH 固定
+ * - height: COMPACT_BASE_HEIGHT + min(cols, MAX_COLUMNS) * COMPACT_COLUMN_ROW_HEIGHT
+ *           + more 行ぶん (cols > MAX_COLUMNS の場合)
+ */
+function computeCompactNodeSize(numColumns: number): { width: number; height: number } {
+  const shown = Math.min(numColumns, LAYOUT.COMPACT_MAX_COLUMNS);
+  const more = numColumns > LAYOUT.COMPACT_MAX_COLUMNS ? LAYOUT.COMPACT_COLUMN_ROW_HEIGHT : 0;
+  return {
+    width: LAYOUT.COMPACT_NODE_WIDTH,
+    height: LAYOUT.COMPACT_BASE_HEIGHT + shown * LAYOUT.COMPACT_COLUMN_ROW_HEIGHT + more,
+  };
+}
+
+/**
+ * compact モードの queryBox ノードに対して width/height を override する
+ * (bd-sql_viz_202604_2-n5t)。recalculateLayout は子の visible 数だけを見て
+ * サイズを決めるため、全子 hidden の compact モードでは MIN サイズになって
+ * 列名がはみ出る。compact 用の実寸を明示的に設定する。
+ */
+function applyCompactSizes<T extends FlowNode>(nodes: T[]): T[] {
+  return nodes.map((n) => {
+    if (n.type !== 'queryBox') return n;
+    const data = n.data as QueryBoxNodeData | undefined;
+    if (data?.displayMode !== 'compact') return n;
+    const size = computeCompactNodeSize(data.compactColumns?.length ?? 0);
+    return {
+      ...n,
+      width: size.width,
+      height: size.height,
+      style: { ...n.style, width: size.width, height: size.height },
+    };
+  });
+}
+
+/**
  * table_dependency エッジの実際の target ノード ID を計算する
  * (bd-sql_viz_202604_2-q8n)。
  *
@@ -704,7 +740,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       .filter((e) => e.data?.dependencyType === 'table_dependency')
       .map((e) => ({ source: e.source, target: e.target }));
     const arrangedRoots = arrangeTableNodes(rootNodes as Node[], tableDependencies) as FlowNode[];
-    const finalNodes = [...arrangedRoots, ...nonRootNodes];
+    let finalNodes = [...arrangedRoots, ...nonRootNodes];
+
+    // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
+    finalNodes = applyCompactSizes(finalNodes);
 
     // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
     const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
@@ -743,7 +782,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     });
 
     // recalculateLayout でボトムアップにサイズ再計算
-    const recalculated = recalculateLayout(updatedNodes) as FlowNode[];
+    let recalculated = recalculateLayout(updatedNodes) as FlowNode[];
+
+    // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
+    recalculated = applyCompactSizes(recalculated);
 
     // bd-sql_viz_202604_2-q8n: 表示モード変更後 table_dependency エッジを再ターゲット
     const retargetedEdges = retargetTableDependencyEdges(state.edges, recalculated);
