@@ -194,6 +194,14 @@ interface QueryBoxNodeData {
 | サイズ | 固定小サイズ | 子ノードに応じた動的サイズ |
 | 背景色 | `#eef2f7` (淡い青灰) | 同上 |
 
+**compact モードのテキストクリッピング** (bd-sql_viz_202604_2-3bk):
+compact モードでは `.compactBody` 内に列名リストを表示するが、`.container` が
+`overflow: visible` (ハンドル用) のため、長い列名が box 右端を超えてはみ出す
+問題があった。以下の制約で `.compactBody` 内部だけを clip する:
+- `.compactBody`: `width: 100%; box-sizing: border-box; min-width: 0; overflow: hidden`
+- `.compactColumn`: `max-width: 100%; min-width: 0` （`overflow: hidden; text-overflow: ellipsis; white-space: nowrap` は従来どおり）
+- `.container` の `overflow: visible` は維持（ハンドルのクリップを防ぐため）
+
 **背景色・領域** (bd-sql_viz_202604_2-kfq):
 - `.container` は `width: 100%; height: 100%; box-sizing: border-box` で
   React Flow outer wrapper 全体を覆うように拡張
