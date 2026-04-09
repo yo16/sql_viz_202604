@@ -129,8 +129,8 @@ test('FROM/WHERE clauseBox are not draggable', () => {
   }
 });
 
-test('clauseBoxes are arranged horizontally in execution order (FROM < WHERE < SELECT)', () => {
-  // bd-q82: 縦積みから横並び（実行順）に変更された
+test('2-column layout: FROM/WHERE stacked left, SELECT right (bd-8ud)', () => {
+  // bd-sql_viz_202604_2-8ud: 横一列 → 2 列レイアウトに変更
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('q1', makeSimpleTable());
@@ -138,9 +138,12 @@ test('clauseBoxes are arranged horizontally in execution order (FROM < WHERE < S
   const sel = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'SELECT')!;
   const from = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'FROM')!;
   const where = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'WHERE')!;
-  assert(from.position.x < where.position.x, 'FROM should be left of WHERE, from.x=' + from.position.x + ' where.x=' + where.position.x);
-  assert(where.position.x < sel.position.x, 'WHERE should be left of SELECT');
-  assert(from.position.y === sel.position.y, 'all clauses share y');
+  // 左列: FROM/WHERE が同じ x、縦に並ぶ (FROM 上、WHERE 下)
+  assert(from.position.x === where.position.x, 'FROM/WHERE share x (left col)');
+  assert(from.position.y < where.position.y, 'FROM above WHERE');
+  // 右列: SELECT は左列の右、FROM と同じ y
+  assert(sel.position.x > from.position.x, 'SELECT in right col');
+  assert(sel.position.y === from.position.y, 'SELECT top-aligned with FROM');
 });
 
 console.log('\\n=== FROM/WHERE Clause Display Tests ===\\n');

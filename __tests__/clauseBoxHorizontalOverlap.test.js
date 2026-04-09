@@ -78,27 +78,29 @@ function clausesOf(parentId: string) {
   );
 }
 
-test('leaf query: all 6 clause boxes do not overlap', () => {
+test('leaf query: left-column clauses do not overlap vertically (bd-8ud)', () => {
   setupLeaf();
-  const clauses = clausesOf('q').sort((a: any, b: any) => a.position.x - b.position.x);
-  for (let i = 1; i < clauses.length; i++) {
-    const prev = clauses[i - 1];
-    const curr = clauses[i];
-    const prevRight = prev.position.x + (prev.width ?? 0);
-    assert(prevRight <= curr.position.x,
-      'overlap: ' + (prev.data as any).clauseType + '.right(' + prevRight + ') > ' +
-      (curr.data as any).clauseType + '.left(' + curr.position.x + ')');
+  // bd-sql_viz_202604_2-8ud: 2 列レイアウト。左列は縦積みなので y 方向の非重複を検証。
+  const leftTypes = ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'];
+  const leftClauses = clausesOf('q').filter((n: any) => leftTypes.includes((n.data as any).clauseType))
+    .sort((a: any, b: any) => a.position.y - b.position.y);
+  for (let i = 1; i < leftClauses.length; i++) {
+    const prev: any = leftClauses[i - 1];
+    const curr: any = leftClauses[i];
+    const prevBottom = prev.position.y + (prev.height ?? 0);
+    assert(prevBottom <= curr.position.y,
+      'overlap: ' + (prev.data as any).clauseType + '.bottom=' + prevBottom +
+      ' > ' + (curr.data as any).clauseType + '.top=' + curr.position.y);
   }
 });
 
-test('leaf query: SELECT and ORDER BY do not overlap specifically', () => {
+test('leaf query: SELECT right column does not overlap left column (bd-8ud)', () => {
   setupLeaf();
   const sel = clausesOf('q').find((n: any) => (n.data as any).clauseType === 'SELECT')!;
-  const ob = clausesOf('q').find((n: any) => (n.data as any).clauseType === 'ORDER BY')!;
-  const selRight = sel.position.x + (sel.width ?? 0);
-  assert(selRight <= ob.position.x,
-    'SELECT right (' + selRight + ', x=' + sel.position.x + ' w=' + (sel.width ?? 0) +
-    ') should be <= ORDER BY left (' + ob.position.x + ')');
+  const fromBox = clausesOf('q').find((n: any) => (n.data as any).clauseType === 'FROM')!;
+  const leftRight = fromBox.position.x + (fromBox.width ?? 0);
+  assert(sel.position.x >= leftRight,
+    'SELECT.x (' + sel.position.x + ') should be >= left-col right (' + leftRight + ')');
 });
 
 test('04_cte_with: main clauseBoxes are RIGHT of CTE children (not below)', () => {
@@ -121,39 +123,44 @@ test('04_cte_with: main clauseBoxes are RIGHT of CTE children (not below)', () =
   } finally { unsub(); }
 });
 
-test('04_cte_with: main clauseBoxes do not overlap each other', () => {
+test('04_cte_with: left-column main clauses do not overlap vertically (bd-8ud)', () => {
   const unsub = setupCTE();
   try {
     const nodes = useFlowStore.getState().nodes;
     const top = nodes.find((n: any) =>
       n.type === 'queryBox' && !n.id.includes('__cte__') && (n as any).parentId === undefined
     )!;
-    const mainClauses = nodes.filter((n: any) =>
-      n.type === 'clauseBox' && (n as any).parentId === top.id
-    ).sort((a: any, b: any) => a.position.x - b.position.x);
-    for (let i = 1; i < mainClauses.length; i++) {
-      const prev: any = mainClauses[i - 1];
-      const curr: any = mainClauses[i];
-      const prevRight = prev.position.x + (prev.width ?? 0);
-      assert(prevRight <= curr.position.x,
-        'main clause overlap: ' + (prev.data as any).clauseType + '.right=' + prevRight +
-        ' > ' + (curr.data as any).clauseType + '.left=' + curr.position.x);
+    const leftTypes = ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'];
+    const leftClauses = nodes.filter((n: any) =>
+      n.type === 'clauseBox' && (n as any).parentId === top.id && leftTypes.includes((n.data as any).clauseType)
+    ).sort((a: any, b: any) => a.position.y - b.position.y);
+    for (let i = 1; i < leftClauses.length; i++) {
+      const prev: any = leftClauses[i - 1];
+      const curr: any = leftClauses[i];
+      const prevBottom = prev.position.y + (prev.height ?? 0);
+      assert(prevBottom <= curr.position.y,
+        'overlap: ' + (prev.data as any).clauseType + '.bottom=' + prevBottom +
+        ' > ' + (curr.data as any).clauseType + '.top=' + curr.position.y);
     }
   } finally { unsub(); }
 });
 
-test('04_cte_with: main clauses share y = PADDING_TOP (44)', () => {
+test('04_cte_with: SELECT and FROM share top y (bd-8ud)', () => {
   const unsub = setupCTE();
   try {
     const nodes = useFlowStore.getState().nodes;
     const top = nodes.find((n: any) =>
       n.type === 'queryBox' && !n.id.includes('__cte__') && (n as any).parentId === undefined
     )!;
-    const mainClauses = nodes.filter((n: any) =>
-      n.type === 'clauseBox' && (n as any).parentId === top.id
-    );
-    const ys = new Set(mainClauses.map((n: any) => n.position.y));
-    assert(ys.size === 1, 'all main clauses should share y, got ' + Array.from(ys).join(','));
+    const sel = nodes.find((n: any) =>
+      n.type === 'clauseBox' && (n as any).parentId === top.id && (n.data as any).clauseType === 'SELECT'
+    )!;
+    const fromBox = nodes.find((n: any) =>
+      n.type === 'clauseBox' && (n as any).parentId === top.id && (n.data as any).clauseType === 'FROM'
+    )!;
+    assert(sel.position.y === fromBox.position.y,
+      'SELECT and FROM should share top y');
+    assert(sel.position.x > fromBox.position.x, 'SELECT right of FROM');
   } finally { unsub(); }
 });
 

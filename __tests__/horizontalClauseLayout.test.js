@@ -69,28 +69,33 @@ test('all six clause types are generated for full query', () => {
   }
 });
 
-test('clauseBoxes are arranged horizontally in execution order (x increases)', () => {
+test('left column clauses stack vertically in execution order (bd-8ud)', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('q', makeFullTable());
   useFlowStore.getState().syncFromLineage(tables);
-  const order = ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'SELECT', 'ORDER BY'];
+  // bd-sql_viz_202604_2-8ud: 2 列レイアウト。左列は FROM→WHERE→GROUP BY→HAVING→ORDER BY を縦積み。
+  const order = ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'];
+  const ys = order.map(t => findClause(t).position.y);
+  for (let i = 1; i < ys.length; i++) {
+    assert(ys[i - 1] < ys[i],
+      'expected ' + order[i - 1] + '.y < ' + order[i] + '.y');
+  }
   const xs = order.map(t => findClause(t).position.x);
   for (let i = 1; i < xs.length; i++) {
-    assert(xs[i - 1] < xs[i],
-      'expected ' + order[i - 1] + '.x < ' + order[i] + '.x, got ' + xs[i - 1] + ' < ' + xs[i]);
+    assert(xs[0] === xs[i], 'left column should share x');
   }
 });
 
-test('all main clauseBoxes share same y (PADDING_TOP)', () => {
+test('SELECT is in right column, top-aligned with left column (bd-8ud)', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('q', makeFullTable());
   useFlowStore.getState().syncFromLineage(tables);
-  const ys = ['FROM', 'WHERE', 'SELECT', 'ORDER BY'].map(t => findClause(t).position.y);
-  for (let i = 1; i < ys.length; i++) {
-    assert(ys[0] === ys[i], 'all main clauseBoxes should share y, ' + ys[0] + ' != ' + ys[i]);
-  }
+  const sel = findClause('SELECT');
+  const fromBox = findClause('FROM');
+  assert(sel.position.x > fromBox.position.x, 'SELECT.x > FROM.x');
+  assert(sel.position.y === fromBox.position.y, 'SELECT.y == FROM.y');
 });
 
 test('SELECT clauseBox still has columnItem children', () => {

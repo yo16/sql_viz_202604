@@ -382,8 +382,14 @@ function buildOrderByClauseNode(
 }
 
 /**
- * 全 main clauseBox を実行順で横並び生成する (bd-sql_viz_202604_2-q82)。
- * 順序: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+ * 全 main clauseBox を 2 列レイアウトで生成する (bd-sql_viz_202604_2-8ud)。
+ *
+ * - 左列: SELECT 以外 (FROM → WHERE → GROUP BY → HAVING → ORDER BY) を縦積み。
+ *         実行順を上→下の並びで表現する。
+ * - 右列: SELECT。列数に応じて高さが伸びる。
+ *
+ * 左列の幅は `LAYOUT.QUERY_BOX_MIN_WIDTH` 固定。右列 SELECT は左列の右側
+ * `CHILD_GAP_HORIZONTAL` 空けて配置する。
  */
 function buildMainClauseNodes(
   tableId: string,
@@ -393,19 +399,28 @@ function buildMainClauseNodes(
   startY: number,
   nodes: FlowNode[]
 ): void {
-  const builders: Array<typeof buildFromClauseNode> = [
+  // 左列: SELECT 以外を縦積み
+  const leftColumnBuilders: Array<typeof buildFromClauseNode> = [
     buildFromClauseNode,
     buildWhereClauseNode,
     buildGroupByClauseNode,
     buildHavingClauseNode,
-    buildSelectClauseNodes,
     buildOrderByClauseNode,
   ];
-  let x = startX;
-  for (const builder of builders) {
-    const w = builder(tableId, table, clauseParentId, x, startY, nodes);
-    if (w > 0) x += w + LAYOUT.CHILD_GAP_HORIZONTAL;
+  let leftY = startY;
+  for (const builder of leftColumnBuilders) {
+    const w = builder(tableId, table, clauseParentId, startX, leftY, nodes);
+    if (w > 0) {
+      // 今 push したばかりのノードから実際の高さを取得して次の Y を進める
+      const justPushed = nodes[nodes.length - 1];
+      const h = justPushed.height ?? LAYOUT.CLAUSE_HEADER_HEIGHT;
+      leftY += h + LAYOUT.CHILD_GAP_VERTICAL;
+    }
   }
+
+  // 右列: SELECT を左列の右側に配置
+  const rightX = startX + LAYOUT.QUERY_BOX_MIN_WIDTH + LAYOUT.CHILD_GAP_HORIZONTAL;
+  buildSelectClauseNodes(tableId, table, clauseParentId, rightX, startY, nodes);
 }
 
 /**
