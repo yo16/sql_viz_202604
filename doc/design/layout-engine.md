@@ -511,7 +511,21 @@ post-pass で実行する必要がある。`syncFromLineage` の deferred 処理
 
 ---
 
-## 7.5 メインクエリ clauseBox の遅延配置 (bd-sql_viz_202604_2-u8l)
+## 7.5 メインクエリ clauseBox の遅延配置 (bd-sql_viz_202604_2-u8l, bd-sql_viz_202604_2-hk1)
+
+**配置方針** (bd-sql_viz_202604_2-hk1):
+- ネスト子（CTE/サブクエリ）の**右側**に main clauseBox 群を横並びで配置する
+  （当初は下配置だったが、「先に行われる処理は左、次は右」原則を入れ子構造でも
+  統一するため右配置に変更）
+- main clauseBox の x 座標開始点: `max(childNode.x + childNode.width) + CHILD_GAP_HORIZONTAL`
+- y 座標は PADDING_TOP 共通
+
+**clauseBox 幅統一** (bd-sql_viz_202604_2-hk1):
+- 全 clauseBox の width を `LAYOUT.QUERY_BOX_MIN_WIDTH` (220) に統一する。
+  以前は `COLUMN_ITEM_MIN_WIDTH` (150) で生成していたが、SELECT 句は子カラムを
+  持つため `recalculateLayout` で `QUERY_BOX_MIN_WIDTH` に拡張され、x 進行と
+  ずれて ORDER BY が SELECT と重なる不具合があった。全句を同じ幅で生成すれば
+  `buildMainClauseNodes` の x 進行と `recalculateLayout` 後の実寸が一致する。
 
 CTE / FROMサブクエリ / WHEREサブクエリを持つ親クエリでも、メインクエリの
 SELECT/FROM/WHERE clauseBox を表示する必要がある。これらはネスト子の最下端

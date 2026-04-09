@@ -91,7 +91,7 @@ test('main WHERE clauseBox exists', () => {
   } finally { unsub(); }
 });
 
-test('main clauseBoxes are positioned below CTE children', () => {
+test('main clauseBoxes are positioned to the RIGHT of CTE children (bd-hk1)', () => {
   const unsub = setup();
   try {
     const nodes = useFlowStore.getState().nodes;
@@ -102,13 +102,14 @@ test('main clauseBoxes are positioned below CTE children', () => {
       (n as any).parentId === topQuery.id && n.type === 'queryBox'
     );
     assert(cteChildren.length === 2, 'should have 2 CTE children, got ' + cteChildren.length);
-    const cteMaxBottom = Math.max(...cteChildren.map((n: any) => {
-      const h = n.height ?? n.measured?.height ?? 80;
-      return n.position.y + h;
+    const cteMaxRight = Math.max(...cteChildren.map((n: any) => {
+      const w = n.width ?? n.measured?.width ?? 220;
+      return n.position.x + w;
     }));
     const mainSelect = nodes.find((n: any) => n.id === topQuery.id + '__clause__SELECT')!;
-    assert(mainSelect.position.y >= cteMaxBottom,
-      'main SELECT y (' + mainSelect.position.y + ') should be >= CTE bottom (' + cteMaxBottom + ')');
+    // bd-hk1: main clauseBox は CTE 子の「下」ではなく「右」に配置される
+    assert(mainSelect.position.x >= cteMaxRight,
+      'main SELECT x (' + mainSelect.position.x + ') should be >= CTE right (' + cteMaxRight + ')');
   } finally { unsub(); }
 });
 

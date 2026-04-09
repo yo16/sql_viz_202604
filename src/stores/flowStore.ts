@@ -164,10 +164,10 @@ function pushSimpleClauseNode(
     parentId: clauseParentId,
     extent: 'parent',
     draggable: false,
-    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    width: LAYOUT.QUERY_BOX_MIN_WIDTH,
     height: LAYOUT.CLAUSE_HEADER_HEIGHT,
   } as FlowNode);
-  return LAYOUT.COLUMN_ITEM_MIN_WIDTH;
+  return LAYOUT.QUERY_BOX_MIN_WIDTH;
 }
 
 /**
@@ -203,7 +203,7 @@ function buildSelectClauseNodes(
     parentId: clauseParentId,
     extent: 'parent',
     draggable: false,
-    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    width: LAYOUT.QUERY_BOX_MIN_WIDTH,
     height: clauseHeaderH + columns.length * LAYOUT.COLUMN_ITEM_HEIGHT,
   } as FlowNode);
 
@@ -226,12 +226,12 @@ function buildSelectClauseNodes(
       parentId: clauseId,
       extent: 'parent',
       draggable: false,
-      width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+      width: LAYOUT.QUERY_BOX_MIN_WIDTH,
       height: LAYOUT.COLUMN_ITEM_HEIGHT,
     } as FlowNode);
   });
 
-  return LAYOUT.COLUMN_ITEM_MIN_WIDTH;
+  return LAYOUT.QUERY_BOX_MIN_WIDTH;
 }
 
 /**
@@ -622,18 +622,19 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           }
         }
 
-        // 4. ネスト子の最下端を算出し、main clauseBox を横並びでその下に配置
-        let mainY = LAYOUT.PADDING_TOP;
+        // 4. ネスト子の最右端を算出し、main clauseBox を横並びでその右に配置
+        //    (bd-sql_viz_202604_2-hk1: 下ではなく右に配置 — 実行順の左→右を守る)
+        let mainX = LAYOUT.PADDING_HORIZONTAL;
         if (childNodes.length > 0) {
-          const maxBottom = Math.max(
+          const maxRight = Math.max(
             ...childNodes.map((n) => {
-              const h = n.height ?? LAYOUT.QUERY_BOX_MIN_HEIGHT;
-              return n.position.y + h;
+              const w = n.width ?? LAYOUT.QUERY_BOX_MIN_WIDTH;
+              return n.position.x + w;
             })
           );
-          mainY = maxBottom + LAYOUT.CHILD_GAP_VERTICAL;
+          mainX = maxRight + LAYOUT.CHILD_GAP_HORIZONTAL;
         }
-        buildMainClauseNodes(tableId, table, tableId, LAYOUT.PADDING_HORIZONTAL, mainY, recalculated);
+        buildMainClauseNodes(tableId, table, tableId, mainX, LAYOUT.PADDING_TOP, recalculated);
       }
       // 2回目の recalculateLayout: ネスト子の再配置と main clauseBox を含めて親サイズ再計算
       const resortedNodes = sortNodesParentFirst(recalculated);
