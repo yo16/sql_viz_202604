@@ -129,7 +129,8 @@ test('FROM/WHERE clauseBox are not draggable', () => {
   }
 });
 
-test('clauseBox nodes have distinct y positions (stacked vertically)', () => {
+test('clauseBoxes are arranged horizontally in execution order (FROM < WHERE < SELECT)', () => {
+  // bd-q82: 縦積みから横並び（実行順）に変更された
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('q1', makeSimpleTable());
@@ -137,8 +138,9 @@ test('clauseBox nodes have distinct y positions (stacked vertically)', () => {
   const sel = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'SELECT')!;
   const from = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'FROM')!;
   const where = useFlowStore.getState().nodes.find((n: any) => n.type === 'clauseBox' && (n.data as any).clauseType === 'WHERE')!;
-  assert(sel.position.y < from.position.y, 'SELECT should be above FROM, sel.y=' + sel.position.y + ' from.y=' + from.position.y);
-  assert(from.position.y < where.position.y, 'FROM should be above WHERE');
+  assert(from.position.x < where.position.x, 'FROM should be left of WHERE, from.x=' + from.position.x + ' where.x=' + where.position.x);
+  assert(where.position.x < sel.position.x, 'WHERE should be left of SELECT');
+  assert(from.position.y === sel.position.y, 'all clauses share y');
 });
 
 console.log('\\n=== FROM/WHERE Clause Display Tests ===\\n');

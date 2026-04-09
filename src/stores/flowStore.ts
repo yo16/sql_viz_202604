@@ -84,20 +84,50 @@ function sortNodesParentFirst(nodes: FlowNode[]): FlowNode[] {
 }
 
 /**
+ * 句 clauseBox 共通生成ヘルパー（ヘッダのみ、子カラムなし）。
+ * 横並びレイアウト対応 (bd-sql_viz_202604_2-q82)。
+ *
+ * @returns 生成した clauseBox の幅。生成しなかった場合は 0。
+ */
+function pushSimpleClauseNode(
+  clauseId: string,
+  clauseType: ClauseBoxNodeData['clauseType'],
+  label: string,
+  clauseParentId: string,
+  position: { x: number; y: number },
+  nodes: FlowNode[]
+): number {
+  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
+    clauseType,
+    label,
+  };
+  nodes.push({
+    id: clauseId,
+    type: 'clauseBox',
+    position,
+    data: clauseData,
+    parentId: clauseParentId,
+    extent: 'parent',
+    draggable: false,
+    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
+    height: LAYOUT.CLAUSE_HEADER_HEIGHT,
+  } as FlowNode);
+  return LAYOUT.COLUMN_ITEM_MIN_WIDTH;
+}
+
+/**
  * TableNode の SELECT句カラムから ClauseBoxNode + ColumnItemNode を生成する。
  * 設計参照: doc/design/component-design.md セクション3.2, 3.3
  *
- * @param tableId - 親テーブルの ID
- * @param table - TableNode
- * @param clauseParentId - ClauseBoxNode の parentId（通常は tableId）
- * @param startY - ClauseBoxNode の配置開始Y座標
- * @param nodes - 生成したノードを追加するための配列（出力用）
- * @returns 生成したノード群の合計高さ
+ * 横並びレイアウトのため、引数は startX に変更 (bd-sql_viz_202604_2-q82)。
+ *
+ * @returns 生成した clauseBox の幅（ない場合は 0）
  */
 function buildSelectClauseNodes(
   tableId: string,
   table: TableNode,
   clauseParentId: string,
+  startX: number,
   startY: number,
   nodes: FlowNode[]
 ): number {
@@ -113,7 +143,7 @@ function buildSelectClauseNodes(
   nodes.push({
     id: clauseId,
     type: 'clauseBox',
-    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
+    position: { x: startX, y: startY },
     data: clauseData,
     parentId: clauseParentId,
     extent: 'parent',
@@ -146,24 +176,24 @@ function buildSelectClauseNodes(
     } as FlowNode);
   });
 
-  return clauseHeaderH + columns.length * LAYOUT.COLUMN_ITEM_HEIGHT;
+  return LAYOUT.COLUMN_ITEM_MIN_WIDTH;
 }
 
 /**
- * FROM句 ClauseBoxNode を1件生成する（ヘッダのみ、子カラムなし）。
- * @returns 生成した clauseBox の高さ。FROM情報がない場合は 0 を返す。
+ * FROM句 ClauseBoxNode を1件生成する。
+ * @returns 生成した clauseBox の幅（ない場合は 0）
  */
 function buildFromClauseNode(
   tableId: string,
   table: TableNode,
   clauseParentId: string,
+  startX: number,
   startY: number,
   nodes: FlowNode[]
 ): number {
   const from = table.clauses.from;
   if (!from || from.tables.length === 0) return 0;
 
-  // ラベル組み立て: テーブル名（エイリアスがあれば "name AS alias"）＋ JOIN 情報
   const tableLabels = from.tables.map((t) =>
     t.alias ? `${t.name} ${t.alias}` : t.name
   );
@@ -173,60 +203,109 @@ function buildFromClauseNode(
   });
   const label = [tableLabels.join(', '), ...joinLabels].join(' ');
 
-  const clauseId = `${tableId}__clause__FROM`;
-  const clauseHeaderH = LAYOUT.CLAUSE_HEADER_HEIGHT;
-  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
-    clauseType: 'FROM',
-    label,
-  };
-  nodes.push({
-    id: clauseId,
-    type: 'clauseBox',
-    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
-    data: clauseData,
-    parentId: clauseParentId,
-    extent: 'parent',
-    draggable: false,
-    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
-    height: clauseHeaderH,
-  } as FlowNode);
-
-  return clauseHeaderH;
+  return pushSimpleClauseNode(
+    `${tableId}__clause__FROM`, 'FROM', label, clauseParentId, { x: startX, y: startY }, nodes
+  );
 }
 
 /**
- * WHERE句 ClauseBoxNode を1件生成する（ヘッダのみ、子カラムなし）。
- * @returns 生成した clauseBox の高さ。WHERE が無い場合は 0 を返す。
+ * WHERE句 ClauseBoxNode を1件生成する。
+ * @returns 生成した clauseBox の幅（ない場合は 0）
  */
 function buildWhereClauseNode(
   tableId: string,
   table: TableNode,
   clauseParentId: string,
+  startX: number,
   startY: number,
   nodes: FlowNode[]
 ): number {
   const where = table.clauses.where;
   if (!where) return 0;
+  return pushSimpleClauseNode(
+    `${tableId}__clause__WHERE`, 'WHERE', where.conditionText, clauseParentId, { x: startX, y: startY }, nodes
+  );
+}
 
-  const clauseId = `${tableId}__clause__WHERE`;
-  const clauseHeaderH = LAYOUT.CLAUSE_HEADER_HEIGHT;
-  const clauseData: ClauseBoxNodeData & Record<string, unknown> = {
-    clauseType: 'WHERE',
-    label: where.conditionText,
-  };
-  nodes.push({
-    id: clauseId,
-    type: 'clauseBox',
-    position: { x: LAYOUT.PADDING_HORIZONTAL, y: startY },
-    data: clauseData,
-    parentId: clauseParentId,
-    extent: 'parent',
-    draggable: false,
-    width: LAYOUT.COLUMN_ITEM_MIN_WIDTH,
-    height: clauseHeaderH,
-  } as FlowNode);
+/**
+ * GROUP BY句 ClauseBoxNode を生成する (bd-sql_viz_202604_2-q82)。
+ */
+function buildGroupByClauseNode(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startX: number,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const gb = table.clauses.groupBy;
+  if (!gb) return 0;
+  return pushSimpleClauseNode(
+    `${tableId}__clause__GROUP_BY`, 'GROUP BY', gb.expressionText, clauseParentId, { x: startX, y: startY }, nodes
+  );
+}
 
-  return clauseHeaderH;
+/**
+ * HAVING句 ClauseBoxNode を生成する (bd-sql_viz_202604_2-q82)。
+ */
+function buildHavingClauseNode(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startX: number,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const h = table.clauses.having;
+  if (!h) return 0;
+  return pushSimpleClauseNode(
+    `${tableId}__clause__HAVING`, 'HAVING', h.conditionText, clauseParentId, { x: startX, y: startY }, nodes
+  );
+}
+
+/**
+ * ORDER BY句 ClauseBoxNode を生成する (bd-sql_viz_202604_2-q82)。
+ */
+function buildOrderByClauseNode(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startX: number,
+  startY: number,
+  nodes: FlowNode[]
+): number {
+  const ob = table.clauses.orderBy;
+  if (!ob) return 0;
+  return pushSimpleClauseNode(
+    `${tableId}__clause__ORDER_BY`, 'ORDER BY', ob.expressionText, clauseParentId, { x: startX, y: startY }, nodes
+  );
+}
+
+/**
+ * 全 main clauseBox を実行順で横並び生成する (bd-sql_viz_202604_2-q82)。
+ * 順序: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+ */
+function buildMainClauseNodes(
+  tableId: string,
+  table: TableNode,
+  clauseParentId: string,
+  startX: number,
+  startY: number,
+  nodes: FlowNode[]
+): void {
+  const builders: Array<typeof buildFromClauseNode> = [
+    buildFromClauseNode,
+    buildWhereClauseNode,
+    buildGroupByClauseNode,
+    buildHavingClauseNode,
+    buildSelectClauseNodes,
+    buildOrderByClauseNode,
+  ];
+  let x = startX;
+  for (const builder of builders) {
+    const w = builder(tableId, table, clauseParentId, x, startY, nodes);
+    if (w > 0) x += w + LAYOUT.CHILD_GAP_HORIZONTAL;
+  }
 }
 
 /**
@@ -352,26 +431,20 @@ function buildQueryBoxNodes(
     }
   }
 
-  // detail モードの場合は main クエリの SELECT / FROM / WHERE ClauseBoxNode を
-  // 縦積みで生成する。
+  // detail モードの場合は main 句の ClauseBoxNode を実行順で横並びに生成する
+  // 順序: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+  // (bd-sql_viz_202604_2-q82)
   if (dm === 'detail') {
     const hasNested =
       table.ctes.length > 0 ||
       table.fromSubqueries.length > 0 ||
       table.whereSubqueries.length > 0;
     if (hasNested) {
-      // ネスト子のサイズは後段 recalculateLayout まで確定しないため、
-      // ここでは生成を遅延し、syncFromLineage 側で位置を決めて生成する
-      // （bd-sql_viz_202604_2-u8l）。
+      // ネスト子のサイズ確定後に位置決めするため遅延 (bd-sql_viz_202604_2-u8l)
       deferredMainClauses.push({ tableId, table });
     } else {
-      // リーフクエリはそのまま即時生成
-      let y = LAYOUT.PADDING_TOP;
-      const selectH = buildSelectClauseNodes(tableId, table, tableId, y, nodes);
-      if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
-      const fromH = buildFromClauseNode(tableId, table, tableId, y, nodes);
-      if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
-      buildWhereClauseNode(tableId, table, tableId, y, nodes);
+      // リーフクエリは即時生成
+      buildMainClauseNodes(tableId, table, tableId, LAYOUT.PADDING_HORIZONTAL, LAYOUT.PADDING_TOP, nodes);
     }
   }
 }
@@ -481,7 +554,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     let recalculated = recalculateLayout(sortedNodes as Node[]) as FlowNode[];
 
     // 遅延されていた main clauseBox 群を生成する（bd-sql_viz_202604_2-u8l）
-    // ネスト子の最下端を算出し、その直下に SELECT → FROM → WHERE を縦積み
+    // ネスト子の最下端を算出し、その直下に main 句群を横並びで配置 (bd-q82)
     if (deferredMainClauses.length > 0) {
       for (const { tableId, table } of deferredMainClauses) {
         const childNodes = recalculated.filter(
@@ -497,11 +570,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           );
           y = maxBottom + LAYOUT.CHILD_GAP_VERTICAL;
         }
-        const selectH = buildSelectClauseNodes(tableId, table, tableId, y, recalculated);
-        if (selectH > 0) y += selectH + LAYOUT.CHILD_GAP_VERTICAL;
-        const fromH = buildFromClauseNode(tableId, table, tableId, y, recalculated);
-        if (fromH > 0) y += fromH + LAYOUT.CHILD_GAP_VERTICAL;
-        buildWhereClauseNode(tableId, table, tableId, y, recalculated);
+        buildMainClauseNodes(tableId, table, tableId, LAYOUT.PADDING_HORIZONTAL, y, recalculated);
       }
       // 2回目の recalculateLayout: 追加された main clauseBox を含めて親サイズ再計算
       const resortedNodes = sortNodesParentFirst(recalculated);
