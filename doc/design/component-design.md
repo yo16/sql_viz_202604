@@ -383,6 +383,14 @@ interface UnresolvedBoxNodeData {
 - ヘッダーに `[未登録]` プレフィックスを表示
 - 推定カラムは `inferred` スタイルで表示
 
+**リネージュハイライト** (bd-sql_viz_202604_2-4et):
+- UnresolvedBoxNode は推定カラムを ColumnItemNode ではなくコンポーネント内の
+  `<div>` で直接レンダリングしている。そのため `highlightedColumns` を
+  `useFlowStore` 経由で購読し、各カラム div のクラス名を動的に切り替える
+- ハイライト対象: `.inferredColumnHighlighted` (オレンジ枠＋背景)
+- dim 対象: `.inferredColumnDimmed` (opacity: 0.35)
+- `highlightPath` が非 null のときのみ dim が発動
+
 **サイズ計算** (bd-sql_viz_202604_2-ple):
 - 以前は width/height が未設定で `arrangeTableNodes` が `QUERY_BOX_MIN_HEIGHT=80`
   にフォールバックし、推定カラムが多い未登録テーブル同士が重なっていた

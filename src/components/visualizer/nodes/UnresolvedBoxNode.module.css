@@ -94,6 +94,16 @@
   white-space: nowrap;
 }
 
+/* bd-sql_viz_202604_2-4et: リネージュハイライト */
+.inferredColumnHighlighted {
+  background: rgba(245, 158, 11, 0.12);
+  outline: 1px solid var(--color-highlight);
+}
+
+.inferredColumnDimmed {
+  opacity: 0.35;
+}
+
 .emptyColumns {
   font-size: 11px;
   color: var(--color-text-inferred);
