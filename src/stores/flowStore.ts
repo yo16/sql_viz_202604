@@ -921,22 +921,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
     const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
 
-    // まず detail 状態で保存（clauseBox 等が全て生成済み）
     set({ nodes: finalNodes, edges: finalEdges, displayModes });
-
-    // bd-sql_viz_202604_2-boe: 初回パース後に全ノードを compact に折りたたむ。
-    // toggleDisplayMode の既存ロジック（hidden計算・サイズ更新・リターゲット）を
-    // 再利用するため、syncFromLineage で detail → compact の切替を行う。
-    // 位置 (position) は detail 基準のまま維持されるため、開いても干渉しない。
-    const rootTableIds = finalNodes
-      .filter((n) =>
-        (n.type === 'queryBox' || n.type === 'unresolvedBox') &&
-        n.parentId === undefined
-      )
-      .map((n) => n.id);
-    for (const tid of rootTableIds) {
-      get().toggleDisplayMode(tid);
-    }
   },
 
   toggleDisplayMode: (tableId: string) => {

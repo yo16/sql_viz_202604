@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "mcp__context7__query-docs",
+      "Bash(git -C :*)",
+      "Bash(git -C *)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npx --prefix D:/Public/github/yo16/sql_viz_202604_2 tsc:*)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 status)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 add *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 status *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 diff)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 diff *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 branch)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 branch *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 checkout *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 add *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 commit *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 merge *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 log)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 log *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 stash)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 stash *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 worktree *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 show *)",
+      "Bash(git -C D:/Public/github/yo16/sql_viz_202604_2 reset *)",
+      "Bash(npx --prefix D:/Public/github/yo16/sql_viz_202604_2 tsx*)",
+      "Bash(git rm:*)",
+      "Bash(npx --prefix \"D:/Public/github/yo16/sql_viz_202604_2\" tsc *)",
+      "Bash(npx --prefix \"D:\\\\Public\\\\github\\\\yo16\\\\sql_viz_202604_2\" next lint *)",
+      "Bash(git ls-tree:*)",
+      "Bash(npx --prefix /d/Public/github/yo16/sql_viz_202604_2 tsc*)",
+      "Bash(echo \"exit_code:$?\")",
+      "Bash(npx --prefix /d/Public/github/yo16/sql_viz_202604_2 next lint*)",
+      "Bash(npx --prefix /d/Public/github/yo16/sql_viz_202604_2 eslint*)",
+      "Bash(npx tsx:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx --prefix \"D:/Public/github/yo16/sql_viz_202604_2\" next lint*)",
+      "Bash(git revert:*)"
+    ]
+  }
+}

@@ -1,0 +1,144 @@
+# プロジェクト開発ワークフロー（ベース定義）
+
+このファイルはPM（プロジェクトマネージャー）としてメイン会話で動作するためのベース定義です。
+PMはサブエージェントを逐次呼び出し、ワークフローを制御します。
+
+**注意: このファイルは直接編集しないでください。`scripts/setup.sh` により `CLAUDE.project.md` と結合されて `CLAUDE.md` が生成されます。**
+
+## Bashコマンド実行ルール（厳守）
+
+**これはすべてのエージェントに適用される絶対ルールである。詳細は `rules/bash-single-line.md` を参照。**
+
+1. **コマンドチェイン禁止** — `&&`, `;`, `|` でのチェインは禁止。1つずつ個別に実行
+2. **単一行実行** — ヒアドキュメント、バッククォート内改行は禁止
+3. **複数行引数は外部ファイル経由** — `tmp/` に一時ファイルを書き出して参照
+   - `git commit -F tmp/commit-msg.txt`
+   - `bd create --body-file tmp/bd-body.md`
+   - `bd update {id} --body-file tmp/bd-body.md`
+
+## エージェント呼び出しルール
+
+- PMはメイン会話として動作し、サブエージェントを逐次呼び出す
+- サブエージェントは他のサブエージェントを呼び出せない（Claude Codeの制約）
+- 各サブエージェントはgit操作を行わない（Git管理者のみが行う）
+- 各サブエージェントはBeads操作を行わない（Beads管理者のみが行う）
+- 依存関係のないタスクは、同一メッセージ内で複数のAgent呼び出しにより並列実行する
+
+## ワークフロー
+
+各フェーズの詳細手順はコマンドとして定義されている。PMはコマンドを実行してワークフローを進める。
+
+### フェーズ1: 設計 → `/design`
+要件定義→スペシャリスト相談→設計ドキュメント作成→タスク分解
+
+### フェーズ2: 開発開始 → `/dev-start`
+`bd ready`で実行可能タスクを取得し、並列実行可能なものはworktreeで並列処理
+
+### タスク開発パイプライン → `/dev-task <id>`
+準備→実装→コードレビュー→テスト実装→テストレビュー→テスト実行→テスト結果判定→完了
+- コードレビューNG: 2回まで再実装、3回目以降はロールバック
+- テスト結果NG: 同上
+
+### ロールバック → `/dev-rollback <id>`
+旧タスククローズ→新タスク作成→依存関係付け替え→ブランチ破棄（3回まで、4回目は停止）
+
+### 並列実行ルール
+- `bd ready` で依存なしタスクを取得し、worktreeで並列実行
+- 同じファイルを編集する可能性がある場合は順次実行に切り替え
+
+## エージェント一覧
+
+### オーケストレーション層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| 設計エージェント | `design-architect.md` | 要件→設計ドキュメント作成 |
+| Beads管理者 | `beads-manager.md` | タスク作成・更新・依存関係・ロールバック管理 |
+| Git管理者 | `git-manager.md` | ブランチ・コミット・マージ・Worktree管理 |
+
+### フレームワークスペシャリスト層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| Next.jsスペシャリスト | `nextjs-specialist.md` | Next.js固有の設計・実装アドバイザー |
+| React+Viteスペシャリスト | `react-vite-specialist.md` | React+Vite (SPA) 固有の設計・実装アドバイザー |
+
+### 実装層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| フロントエンドエンジニア | `frontend-engineer.md` | Reactコンポーネント、ページ実装 |
+| バックエンドエンジニア | `backend-engineer.md` | API/データアクセス層、サーバーサイドロジック |
+| DB設計エンジニア | `db-designer.md` | 汎用スキーマ設計、マイグレーション戦略 |
+| Supabaseスペシャリスト | `supabase-specialist.md` | DB実装+Auth+RLS、Supabase MCP操作 |
+| WEBデザイナー | `web-designer.md` | CSS Modules、レスポンシブ、ビジュアル |
+| インフラエンジニア | `infra-engineer.md` | デプロイ設定、CI/CD、環境変数 |
+| セキュリティスペシャリスト | `security-specialist.md` | 脆弱性監査、認証/認可レビュー |
+
+### レビュー層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| FEコードレビュアー | `frontend-code-reviewer.md` | フロントエンドコード品質・設計レビュー |
+| BEコードレビュアー | `backend-code-reviewer.md` | バックエンドコード品質・設計レビュー |
+
+### テスト層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| FEテストエンジニア | `frontend-test-engineer.md` | フロントエンドテスト設計・実装・実行 |
+| BEテストエンジニア | `backend-test-engineer.md` | バックエンドテスト設計・実装・実行 |
+
+### テスト検証層
+| エージェント | ファイル | 役割 |
+|---|---|---|
+| FEテストレビュアー | `frontend-test-reviewer.md` | フロントエンドテスト設計の十分性チェック |
+| BEテストレビュアー | `backend-test-reviewer.md` | バックエンドテスト設計の十分性チェック |
+| FEテストジャッジ | `frontend-test-judge.md` | フロントエンドテスト結果の判定・失敗分析 |
+| BEテストジャッジ | `backend-test-judge.md` | バックエンドテスト結果の判定・失敗分析 |
+
+---
+
+# プロジェクト固有設定
+
+## 技術スタック
+
+- フレームワーク: Next.js (App Router)
+- デプロイ: Vercel
+- DB/Auth: Supabase（フェーズ3で導入）
+- タスク管理: Beads
+- テスト: Jest（+ Playwright: E2Eが必要な場合）
+- スタイリング: CSS Modules（Tailwind CSS は禁止）
+- 可視化: React Flow v12
+- SQLパーサー: node-sql-parser（サーバーサイド）
+- 状態管理: Zustand
+
+## Git戦略
+
+### ブランチ構成
+- `release`: 正式版ブランチ（エージェント操作禁止）
+- `preview`: プレビュー版ブランチ（エージェント操作禁止）
+- `dev`: 開発ブランチ（featureブランチのマージ先）
+- `feature/bd-{beads-id}`: タスクごとのブランチ
+
+### ルール
+- Git Worktreeを使い、並行で進められるタスクは並行で進める
+- featureブランチはBeadsのIDを使って命名する
+- release, previewブランチはエージェントが操作しない
+
+## 要件定義ドキュメント
+
+- 配置先: `doc/requirements-phase1-2.md`
+
+## 設計ドキュメント構成
+
+設計エージェント(`design-architect`)が作成する設計ドキュメントの一覧です。
+
+- `doc/design/overview.md`: 設計概要（各ドキュメントへのリンク集）
+- `doc/design/architecture.md`: 全体アーキテクチャ設計（システム構成、ディレクトリ構造、データフロー、状態管理方針）
+- `doc/design/api-design.md`: API設計（POST /api/parse のリクエスト/レスポンス仕様、バリデーション、エラーハンドリング）
+- `doc/design/component-design.md`: コンポーネント設計（コンポーネントツリー、カスタムノード仕様、compact/detail トグル、Zustand ストア設計）
+- `doc/design/layout-engine.md`: レイアウトエンジン設計（親ノード動的サイズ計算、ボトムアップ再帰レイアウト、レイアウト定数）
+- `doc/design/lineage-model.md`: リネージュデータモデル設計（TableNode/ColumnNode/ColumnDependency 型定義、AST変換パイプライン、SELECT * 伝播、リネージュ追跡）
+- `doc/design/column-inference-edge-cases.md`: カラム推定エッジケース（未登録テーブルのカラム推定における8つのエッジケースと対処方針）
+
+## プロジェクト固有ルール
+
+- node-sql-parserはサーバーサイド（Route Handler）でのみ使用する。クライアントからimportしない
+- リネージュグラフの構築・再計算はクライアントサイド（Zustand store）で行う
+- React FlowのカスタムノードはすべてCSS Modulesでスタイリングする
