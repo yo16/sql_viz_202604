@@ -664,6 +664,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   edges: [],
   displayModes: new Map(),
   highlightPath: null,
+  highlightedColumns: null,
 
   syncFromLineage: (tables: Map<string, TableNode>) => {
     // TableNode マップから React Flow ノード/エッジを生成する。
@@ -951,12 +952,17 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   highlightLineage: (tableId: string, columnName: string) => {
     // リネージュパスを辿り、関連エッジを特定してハイライト/dim状態を更新する。
     // F2-3: カラムレベルリネージュ対応
+    // bd-sql_viz_202604_2-26k: 上流＋下流カラムをすべて highlightedColumns に含める
     const state = get();
     const tables = useLineageStore.getState().tables;
 
-    // ハイライト対象のエッジIDを収集する（上流方向へ再帰的に辿る）
+    // ハイライト対象のエッジIDを収集する
     const highlightedEdgeIds = new Set<string>();
+    // ハイライト対象のカラムIDを収集する (bd-26k)
+    const highlightedColumns = new Set<string>();
+    highlightedColumns.add(`${tableId}:${columnName}`);
 
+    // 上流方向トレース
     function traceUpstream(currentTableId: string, currentColumn: string): void {
       const table = tables.get(currentTableId);
       if (!table) return;
@@ -968,12 +974,38 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         const edgeId = `col-edge-${dep.sourceTableId}-${currentTableId}-${dep.sourceColumn}-${currentColumn}`;
         if (!highlightedEdgeIds.has(edgeId)) {
           highlightedEdgeIds.add(edgeId);
+          highlightedColumns.add(`${dep.sourceTableId}:${dep.sourceColumn}`);
           traceUpstream(dep.sourceTableId, dep.sourceColumn);
         }
       }
     }
 
+    // 下流方向トレース (bd-26k): 全テーブルの dependencies を逆引きして下流を辿る
+    const downstreamIndex = new Map<string, Array<{ tableId: string; columnName: string }>>();
+    for (const [tid, t] of tables) {
+      for (const [colName, col] of t.columns) {
+        for (const dep of col.dependencies) {
+          const key = `${dep.sourceTableId}:${dep.sourceColumn}`;
+          const list = downstreamIndex.get(key) ?? [];
+          list.push({ tableId: tid, columnName: colName });
+          downstreamIndex.set(key, list);
+        }
+      }
+    }
+    function traceDownstream(currentTableId: string, currentColumn: string): void {
+      const key = `${currentTableId}:${currentColumn}`;
+      for (const next of downstreamIndex.get(key) ?? []) {
+        const edgeId = `col-edge-${currentTableId}-${next.tableId}-${currentColumn}-${next.columnName}`;
+        if (!highlightedEdgeIds.has(edgeId)) {
+          highlightedEdgeIds.add(edgeId);
+          highlightedColumns.add(`${next.tableId}:${next.columnName}`);
+          traceDownstream(next.tableId, next.columnName);
+        }
+      }
+    }
+
     traceUpstream(tableId, columnName);
+    traceDownstream(tableId, columnName);
 
     // ハイライト対象エッジが存在しない場合はhighlightPathを設定しない（ノード/エッジをdimさせない）
     if (highlightedEdgeIds.size === 0) {
@@ -1010,7 +1042,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       };
     });
 
-    set({ highlightPath: { tableId, columnName }, edges: updatedEdges });
+    set({ highlightPath: { tableId, columnName }, highlightedColumns, edges: updatedEdges });
   },
 
   clearHighlight: () => {
@@ -1027,6 +1059,6 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         },
       };
     });
-    set({ highlightPath: null, edges: updatedEdges });
+    set({ highlightPath: null, highlightedColumns: null, edges: updatedEdges });
   },
 }));

@@ -113,6 +113,12 @@ export interface FlowState {
   displayModes: Map<string, DisplayMode>;
   /** 現在ハイライト中のカラムパス */
   highlightPath: { tableId: string; columnName: string } | null;
+  /**
+   * リネージュチェーン上のハイライト対象カラム集合 (bd-sql_viz_202604_2-26k)。
+   * key = "tableId:columnName"。上流＋下流＋クリックしたカラム自身を含む。
+   * null = ハイライト非発動時。
+   */
+  highlightedColumns: Set<string> | null;
 }
 
 /** flowStore のアクション型 */

@@ -594,6 +594,13 @@ interface FlowState {
   displayModes: Map<string, 'compact' | 'detail'>;
   /** 現在ハイライト中のカラムパス */
   highlightPath: { tableId: string; columnName: string } | null;
+  /**
+   * リネージュチェーン上のハイライト対象カラム集合 (bd-sql_viz_202604_2-26k)。
+   * key = "tableId:columnName"。上流＋下流＋クリックしたカラム自身を含む。
+   * null = ハイライト非発動時。
+   * ColumnItemNode がこの Set を参照して isHighlighted を判定する。
+   */
+  highlightedColumns: Set<string> | null;
 }
 
 interface FlowActions {
@@ -622,9 +629,11 @@ interface FlowActions {
   toggleDisplayMode: (tableId: string) => void;
 
   /**
-   * カラムクリック時のリネージュハイライト
-   * - 上流方向に依存関係を辿る
-   * - 関連ノード/エッジの isHighlighted を true に
+   * カラムクリック時のリネージュハイライト (bd-sql_viz_202604_2-26k 拡張)
+   * - 上流方向: dependencies を再帰的に辿る (traceUpstream)
+   * - 下流方向: 全テーブルの dependencies を逆引きして辿る (traceDownstream)
+   * - 関連 column_lineage エッジの isHighlighted を true に
+   * - リネージュチェーン上の全カラムを highlightedColumns Set に追加
    */
   highlightLineage: (tableId: string, columnName: string) => void;
 
