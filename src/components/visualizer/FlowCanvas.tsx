@@ -82,7 +82,10 @@ export function FlowCanvas() {
             const node = updated.find((n) => n.id === c.id);
             if (node) {
               const { id, position } = node;
-              queueMicrotask(() => syncNodePosition(id, position));
+              const w = node.measured?.width ?? node.width;
+              const h = node.measured?.height ?? node.height;
+              const dims = (w !== undefined && h !== undefined) ? { width: w, height: h } : undefined;
+              queueMicrotask(() => syncNodePosition(id, position, dims));
             }
           }
         }
