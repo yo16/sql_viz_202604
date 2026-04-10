@@ -1037,6 +1037,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     setAllDisplayMode(get, set, 'compact');
   },
 
+  syncNodePosition: (nodeId: string, position: { x: number; y: number }) => {
+    const state = get();
+    const nodes = state.nodes.map((n) =>
+      n.id === nodeId ? { ...n, position } : n
+    );
+    set({ nodes });
+  },
+
   highlightLineage: (tableId: string, columnName: string) => {
     // リネージュパスを辿り、関連エッジを特定してハイライト/dim状態を更新する。
     // F2-3: カラムレベルリネージュ対応

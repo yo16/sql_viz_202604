@@ -64,11 +64,28 @@ export function FlowCanvas() {
     setLocalEdges(storeEdges);
   }, [storeEdges]);
 
+  const { handleCanvasClick } = useLineageHighlight();
+  const expandAll = useFlowStore((s) => s.expandAll);
+  const compactAll = useFlowStore((s) => s.compactAll);
+  const syncNodePosition = useFlowStore((s) => s.syncNodePosition);
+
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      setLocalNodes((nds) => applyNodeChanges(changes, nds));
+      setLocalNodes((nds) => {
+        const updated = applyNodeChanges(changes, nds);
+        // リサイズ完了時にストアの位置も同期
+        for (const c of changes) {
+          if (c.type === 'dimensions' && c.dimensions && !c.resizing) {
+            const node = updated.find((n) => n.id === c.id);
+            if (node) {
+              syncNodePosition(node.id, node.position);
+            }
+          }
+        }
+        return updated;
+      });
     },
-    []
+    [syncNodePosition]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -78,9 +95,13 @@ export function FlowCanvas() {
     []
   );
 
-  const { handleCanvasClick } = useLineageHighlight();
-  const expandAll = useFlowStore((s) => s.expandAll);
-  const compactAll = useFlowStore((s) => s.compactAll);
+  // ドラッグ完了時にストアへ位置を同期。toggleDisplayMode 等で位置がリセットされるのを防ぐ。
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      syncNodePosition(node.id, node.position);
+    },
+    [syncNodePosition]
+  );
 
   return (
     <div className={styles.container}>
@@ -112,6 +133,7 @@ export function FlowCanvas() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
         onPaneClick={handleCanvasClick}
         fitView
         minZoom={0.1}
