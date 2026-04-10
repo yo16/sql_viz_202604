@@ -71,28 +71,9 @@ export function FlowCanvas() {
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      setLocalNodes((nds) => {
-        const updated = applyNodeChanges(changes, nds);
-        // リサイズ完了時にストアの位置も同期。
-        // setLocalNodes コールバック内で Zustand set() を呼ぶと
-        // "Cannot update a component while rendering" エラーになるため
-        // queueMicrotask で遅延する。
-        for (const c of changes) {
-          if (c.type === 'dimensions' && c.dimensions && !c.resizing) {
-            const node = updated.find((n) => n.id === c.id);
-            if (node) {
-              const { id, position } = node;
-              const w = node.measured?.width ?? node.width;
-              const h = node.measured?.height ?? node.height;
-              const dims = (w !== undefined && h !== undefined) ? { width: w, height: h } : undefined;
-              queueMicrotask(() => syncNodePosition(id, position, dims));
-            }
-          }
-        }
-        return updated;
-      });
+      setLocalNodes((nds) => applyNodeChanges(changes, nds));
     },
-    [syncNodePosition]
+    []
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(

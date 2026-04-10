@@ -28,10 +28,15 @@ function QueryBoxNodeComponent({ data, id }: NodeProps) {
   const { title, queryType, displayMode, compactColumns, isOmitted, omitMessage } = nodeData;
 
   const toggleDisplayMode = useFlowStore((s) => s.toggleDisplayMode);
+  const syncNodeDimensions = useFlowStore((s) => s.syncNodeDimensions);
 
   const handleToggle = useCallback(() => {
     toggleDisplayMode(id);
   }, [id, toggleDisplayMode]);
+
+  const handleResizeEnd = useCallback((_event: unknown, params: { width: number; height: number }) => {
+    syncNodeDimensions(id, params.width, params.height);
+  }, [id, syncNodeDimensions]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -63,6 +68,7 @@ function QueryBoxNodeComponent({ data, id }: NodeProps) {
         minHeight={60}
         position="bottom-right"
         style={{ background: 'transparent', border: 'none', padding: 0 }}
+        onResizeEnd={handleResizeEnd}
       >
         <div className={styles.resizeIcon}>⟋</div>
       </NodeResizeControl>

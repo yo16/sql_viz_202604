@@ -23,6 +23,7 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
   const { tableName, inferredColumns, displayMode } = nodeData;
 
   const toggleDisplayMode = useFlowStore((s) => s.toggleDisplayMode);
+  const syncNodeDimensions = useFlowStore((s) => s.syncNodeDimensions);
   // bd-sql_viz_202604_2-4et: リネージュハイライト対応
   const highlightedColumns = useFlowStore((s) => s.highlightedColumns);
   const highlightPath = useFlowStore((s) => s.highlightPath);
@@ -38,6 +39,10 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
     }
   }, [handleToggle]);
 
+  const handleResizeEnd = useCallback((_event: unknown, params: { width: number; height: number }) => {
+    syncNodeDimensions(id, params.width, params.height);
+  }, [id, syncNodeDimensions]);
+
   return (
     <div className={styles.container}>
       {/* bd-sql_viz_202604_2-eqv: 右下リサイズハンドル */}
@@ -46,6 +51,7 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
         minHeight={60}
         position="bottom-right"
         style={{ background: 'transparent', border: 'none', padding: 0 }}
+        onResizeEnd={handleResizeEnd}
       >
         <div className={styles.resizeIcon}>⟋</div>
       </NodeResizeControl>

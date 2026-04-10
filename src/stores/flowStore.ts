@@ -1037,21 +1037,21 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     setAllDisplayMode(get, set, 'compact');
   },
 
-  syncNodePosition: (nodeId: string, position: { x: number; y: number }, dimensions?: { width: number; height: number }) => {
+  syncNodePosition: (nodeId: string, position: { x: number; y: number }) => {
     const state = get();
-    const nodes = state.nodes.map((n) => {
-      if (n.id !== nodeId) return n;
-      if (dimensions) {
-        return {
-          ...n,
-          position,
-          width: dimensions.width,
-          height: dimensions.height,
-          style: { ...n.style, width: dimensions.width, height: dimensions.height },
-        };
-      }
-      return { ...n, position };
-    });
+    const nodes = state.nodes.map((n) =>
+      n.id === nodeId ? { ...n, position } : n
+    );
+    set({ nodes });
+  },
+
+  syncNodeDimensions: (nodeId: string, width: number, height: number) => {
+    const state = get();
+    const nodes = state.nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, width, height, style: { ...n.style, width, height } }
+        : n
+    );
     set({ nodes });
   },
 

@@ -136,11 +136,10 @@ export interface FlowActions {
   expandAll: () => void;
   /** 全ノードを compact (折りたたみ) に一括切替 (bd-sql_viz_202604_2-f4z) */
   compactAll: () => void;
-  /**
-   * ノードのドラッグ/リサイズ完了時に位置・サイズをストアに同期する。
-   * これにより toggleDisplayMode 等のストア操作時にユーザー操作後の状態が保持される。
-   */
-  syncNodePosition: (nodeId: string, position: { x: number; y: number }, dimensions?: { width: number; height: number }) => void;
+  /** ドラッグ完了時に位置をストアに同期 */
+  syncNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
+  /** リサイズ完了時にサイズをストアに同期 */
+  syncNodeDimensions: (nodeId: string, width: number, height: number) => void;
   /** カラムクリック時のリネージュハイライト */
   highlightLineage: (tableId: string, columnName: string) => void;
   /** ハイライトをクリア */
