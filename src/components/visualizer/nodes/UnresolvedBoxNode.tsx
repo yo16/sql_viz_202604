@@ -23,6 +23,9 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
   const { tableName, inferredColumns, displayMode } = nodeData;
 
   const toggleDisplayMode = useFlowStore((s) => s.toggleDisplayMode);
+  // bd-sql_viz_202604_2-4et: リネージュハイライト対応
+  const highlightedColumns = useFlowStore((s) => s.highlightedColumns);
+  const highlightPath = useFlowStore((s) => s.highlightPath);
 
   const handleToggle = useCallback(() => {
     toggleDisplayMode(id);
@@ -65,11 +68,22 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
       ) : (
         <div className={styles.detailBody}>
           {inferredColumns.length > 0 ? (
-            inferredColumns.map((col) => (
-              <div key={col} className={styles.inferredColumn}>
-                {col}
-              </div>
-            ))
+            inferredColumns.map((col) => {
+              // bd-sql_viz_202604_2-4et: リネージュハイライト判定
+              const isColHighlighted = highlightedColumns !== null &&
+                highlightedColumns.has(`${id}:${col}`);
+              const isColDimmed = highlightPath !== null && !isColHighlighted;
+              const colClass = [
+                styles.inferredColumn,
+                isColHighlighted ? styles.inferredColumnHighlighted : '',
+                isColDimmed ? styles.inferredColumnDimmed : '',
+              ].filter(Boolean).join(' ');
+              return (
+                <div key={col} className={colClass}>
+                  {col}
+                </div>
+              );
+            })
           ) : (
             <div className={styles.emptyColumns}>推定カラムなし</div>
           )}
