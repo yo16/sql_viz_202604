@@ -35,6 +35,10 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
   const tableId = parts[0] ?? id;
   const isHighlighted = highlightedColumns !== null &&
     highlightedColumns.has(`${tableId}:${displayName}`);
+  // bd-sql_viz_202604_2-d58: トリガー列（クリック元）はより目立つスタイル
+  const isTrigger = isHighlighted &&
+    highlightPath?.tableId === tableId &&
+    highlightPath?.columnName === displayName;
   // ハイライト発動中で自分が対象外の場合はdim
   const isDimmed = highlightPath !== null && !isHighlighted;
 
@@ -56,7 +60,7 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
     styles.container,
     certainty === 'inferred' ? styles.inferred : '',
     isPropagated ? styles.propagated : '',
-    isHighlighted ? styles.highlighted : '',
+    isTrigger ? styles.triggerHighlighted : (isHighlighted ? styles.highlighted : ''),
     isDimmed ? styles.dimmed : '',
   ].filter(Boolean).join(' ');
 
