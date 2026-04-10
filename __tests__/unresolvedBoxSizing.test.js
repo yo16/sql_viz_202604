@@ -76,16 +76,13 @@ test('unresolvedBox nodes have explicit width and height', () => {
     'raw_b should have explicit width');
 });
 
-test('unresolvedBox detail height reflects column count (toggle to detail first)', () => {
-  // bd-boe: initial is compact, toggle to detail to check
+test('unresolvedBox detail height reflects column count', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('raw_a', makeUnresolved('raw_a', ['c1', 'c2', 'c3', 'c4', 'c5']));
   tables.set('raw_b', makeUnresolved('raw_b', ['x']));
   tables.set('out', makeRegistered('out', ['raw_a', 'raw_b']));
   useFlowStore.getState().syncFromLineage(tables);
-  useFlowStore.getState().toggleDisplayMode('raw_a');
-  useFlowStore.getState().toggleDisplayMode('raw_b');
 
   const a = useFlowStore.getState().nodes.find((n: any) => n.id === 'raw_a')!;
   const b = useFlowStore.getState().nodes.find((n: any) => n.id === 'raw_b')!;
@@ -114,17 +111,16 @@ test('two unresolvedBox nodes in same layer do not overlap vertically', () => {
     bottom.position.y + '). Gap needed: ' + LAYOUT.TABLE_GAP_VERTICAL);
 });
 
-test('unresolvedBox compact mode has smaller height (initial compact → detail → compare)', () => {
-  // bd-boe: initial is compact
+test('unresolvedBox compact mode has smaller height', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('raw_a', makeUnresolved('raw_a', ['c1', 'c2', 'c3', 'c4', 'c5']));
   tables.set('out', makeRegistered('out', ['raw_a']));
   useFlowStore.getState().syncFromLineage(tables);
 
-  const compactH = (useFlowStore.getState().nodes.find((n: any) => n.id === 'raw_a') as any).height;
-  useFlowStore.getState().toggleDisplayMode('raw_a'); // compact → detail
   const detailH = (useFlowStore.getState().nodes.find((n: any) => n.id === 'raw_a') as any).height;
+  useFlowStore.getState().toggleDisplayMode('raw_a');
+  const compactH = (useFlowStore.getState().nodes.find((n: any) => n.id === 'raw_a') as any).height;
   assert(compactH < detailH,
     'compact height (' + compactH + ') should be < detail height (' + detailH + ')');
 });

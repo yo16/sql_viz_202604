@@ -77,7 +77,7 @@ function findTableDepEdge(): any {
   );
 }
 
-test('initial state is compact (bd-boe): edge.target points to QueryBox', () => {
+test('initial detail mode: edge.target points to FROM clauseBox', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('a', makeT('a'));
@@ -85,33 +85,33 @@ test('initial state is compact (bd-boe): edge.target points to QueryBox', () => 
   useFlowStore.getState().syncFromLineage(tables);
   const edge = findTableDepEdge();
   assert(edge !== undefined, 'edge not found');
-  assert(edge.target === 'b', 'expected target=b (initial compact), got: ' + edge.target);
+  assert(edge.target === 'b__clause__FROM',
+    'expected target=b__clause__FROM, got: ' + edge.target);
   assert((edge.data as any).targetTableId === 'b', 'targetTableId should be b');
 });
 
-test('toggling to detail: edge.target points to FROM clauseBox', () => {
+test('toggling target to compact: edge.target reverts to QueryBox id', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('a', makeT('a'));
   tables.set('b', makeT('b', ['a']));
   useFlowStore.getState().syncFromLineage(tables);
-  useFlowStore.getState().toggleDisplayMode('b'); // compact → detail
+  useFlowStore.getState().toggleDisplayMode('b');
   const edge = findTableDepEdge();
-  assert(edge.target === 'b__clause__FROM',
-    'expected target=b__clause__FROM after detail, got: ' + edge.target);
+  assert(edge.target === 'b', 'expected target=b after compact toggle, got: ' + edge.target);
 });
 
-test('toggling back to compact: edge.target reverts to QueryBox', () => {
+test('toggling back to detail: edge.target points to FROM clauseBox again', () => {
   reset();
   const tables = new Map<string, TableNode>();
   tables.set('a', makeT('a'));
   tables.set('b', makeT('b', ['a']));
   useFlowStore.getState().syncFromLineage(tables);
-  useFlowStore.getState().toggleDisplayMode('b'); // compact → detail
-  useFlowStore.getState().toggleDisplayMode('b'); // detail → compact
+  useFlowStore.getState().toggleDisplayMode('b'); // → compact
+  useFlowStore.getState().toggleDisplayMode('b'); // → detail
   const edge = findTableDepEdge();
-  assert(edge.target === 'b',
-    'expected target=b after compact, got: ' + edge.target);
+  assert(edge.target === 'b__clause__FROM',
+    'expected target=b__clause__FROM after re-toggle, got: ' + edge.target);
 });
 
 test('source side stays as QueryBox id (not changed)', () => {
