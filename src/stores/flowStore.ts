@@ -915,10 +915,28 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const arrangedRoots = arrangeTableNodes(rootNodes as Node[], tableDependencies) as FlowNode[];
     let finalNodes = [...arrangedRoots, ...nonRootNodes];
 
-    // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
+    // bd-sql_viz_202604_2-boe: 初回パース後に全ノードを compact で表示する。
+    // 位置は detail レイアウト基準のまま維持し、開いても干渉しないようにする。
+    // displayModes を全て 'compact' に、ノードの data.displayMode も 'compact' に設定。
+    // 位置 (position) は変更せず、サイズ (width/height) だけ compact 用に上書き。
+    for (const [key] of displayModes) {
+      displayModes.set(key, 'compact');
+    }
+    finalNodes = finalNodes.map((n) => {
+      if (n.type === 'queryBox' || n.type === 'unresolvedBox') {
+        return {
+          ...n,
+          data: { ...n.data, displayMode: 'compact' },
+        };
+      }
+      return n;
+    });
+    // compact サイズを適用（位置はそのまま）
     finalNodes = applyCompactSizes(finalNodes);
+    // hidden 状態を compact 基準で再計算
+    finalNodes = computeHiddenStatesFromDisplayModes(finalNodes, displayModes);
 
-    // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
+    // bd-sql_viz_202604_2-q8n: table_dependency エッジを再ターゲット（compact なので QueryBox 本体に）
     const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
 
     set({ nodes: finalNodes, edges: finalEdges, displayModes });

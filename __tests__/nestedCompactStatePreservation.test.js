@@ -56,10 +56,13 @@ test('scenario: outer detail -> inner compact -> outer compact -> outer detail: 
   try {
     const outerId = getTopQueryBoxId();
     const innerCteId = getMonthlyCteId();
-    const store = useFlowStore.getState();
+
+    // bd-boe: 初期状態が compact なので、まず外側と内側を detail に開く
+    useFlowStore.getState().toggleDisplayMode(outerId);   // compact → detail
+    useFlowStore.getState().toggleDisplayMode(innerCteId); // compact → detail
 
     // Step 1: 内側 CTE (monthly_sales) を compact に切替
-    store.toggleDisplayMode(innerCteId);
+    useFlowStore.getState().toggleDisplayMode(innerCteId); // detail → compact
     assert(
       useFlowStore.getState().displayModes.get(innerCteId) === 'compact',
       'inner CTE should be compact'
@@ -104,11 +107,12 @@ test('outer detail unhides own direct clauseBoxes but respects inner compact', (
     const outerId = getTopQueryBoxId();
     const innerCteId = getMonthlyCteId();
 
-    // 内側 compact
-    useFlowStore.getState().toggleDisplayMode(innerCteId);
-    // 外側 compact -> detail
-    useFlowStore.getState().toggleDisplayMode(outerId);
-    useFlowStore.getState().toggleDisplayMode(outerId);
+    // bd-boe: 初期 compact → outer を detail に開く
+    useFlowStore.getState().toggleDisplayMode(outerId); // compact → detail
+    // inner は compact のまま（初期状態）
+    // outer compact -> detail 繰り返し
+    useFlowStore.getState().toggleDisplayMode(outerId); // detail → compact
+    useFlowStore.getState().toggleDisplayMode(outerId); // compact → detail
 
     // 外側の main SELECT clauseBox (= outerId の子) は visible のはず
     const outerMainSelect = useFlowStore.getState().nodes.find((n: any) =>
@@ -132,7 +136,8 @@ test('simple toggle: outer compact then detail with no inner changes restores vi
   try {
     const outerId = getTopQueryBoxId();
 
-    // 初期状態: すべて detail
+    // bd-boe: 初期状態は compact。detail に開いて → compact → detail
+    useFlowStore.getState().toggleDisplayMode(outerId); // compact -> detail
     useFlowStore.getState().toggleDisplayMode(outerId); // detail -> compact
     useFlowStore.getState().toggleDisplayMode(outerId); // compact -> detail
 
