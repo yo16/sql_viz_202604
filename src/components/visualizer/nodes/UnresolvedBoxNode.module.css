@@ -113,11 +113,6 @@
 }
 
 /* bd-sql_viz_202604_2-eqv: リサイズハンドル */
-.resizeHandle {
-  background: transparent;
-  border: none;
-}
-
 .resizeIcon {
   position: absolute;
   bottom: 2px;

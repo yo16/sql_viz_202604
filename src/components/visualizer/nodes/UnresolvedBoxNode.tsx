@@ -45,7 +45,7 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
         minWidth={180}
         minHeight={60}
         position="bottom-right"
-        className={styles.resizeHandle}
+        style={{ background: 'transparent', border: 'none', padding: 0 }}
       >
         <div className={styles.resizeIcon}>⟋</div>
       </NodeResizeControl>
