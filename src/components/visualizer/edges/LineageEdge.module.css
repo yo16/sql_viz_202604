@@ -28,20 +28,29 @@
   opacity: 1;
 }
 
-/* columnLineage かつハイライト時: アニメーション破線で方向性を示す (bd-d58) */
+/* columnLineage かつハイライト時: アニメーション破線で方向性を示す (bd-d58, bd-2vk) */
 .columnLineage.highlighted {
   stroke-dasharray: 8 4;
-  animation: flowDash 0.6s linear infinite;
 }
 
-/* bd-sql_viz_202604_2-d58: 破線がsource→target方向に流れるアニメーション */
-@keyframes flowDash {
-  from {
-    stroke-dashoffset: 12;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+/* bd-sql_viz_202604_2-2vk: downstream = トリガーから下流方向に流れる (source→target = 順方向) */
+.downstream {
+  animation: flowDashForward 0.6s linear infinite;
+}
+
+/* bd-sql_viz_202604_2-2vk: upstream = トリガーから上流方向に流れる (target→source = 逆方向) */
+.upstream {
+  animation: flowDashReverse 0.6s linear infinite;
+}
+
+@keyframes flowDashForward {
+  from { stroke-dashoffset: 12; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes flowDashReverse {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 12; }
 }
 
 /* フォーカス効果: ハイライト発動中で対象外のエッジを更に薄くする */

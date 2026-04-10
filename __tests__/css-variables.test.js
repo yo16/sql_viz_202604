@@ -57,7 +57,7 @@ const colorVars = [
   ['--color-text-secondary', '#475467'],
   ['--color-text-inferred', '#667085'],
   ['--color-accent', '#2563eb'],
-  ['--color-highlight', '#f59e0b'],
+  ['--color-highlight', '#e63946'],
 ];
 
 for (const [varName, expectedValue] of colorVars) {
