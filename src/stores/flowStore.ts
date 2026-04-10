@@ -269,6 +269,35 @@ function restackLeftColumnClauses<T extends FlowNode>(
 }
 
 /**
+ * 全ノードを一括で指定モードに切替える (bd-sql_viz_202604_2-f4z)。
+ * expandAll / compactAll から呼ばれる内部ヘルパー。
+ */
+function setAllDisplayMode(
+  get: () => FlowStore,
+  set: (state: Partial<FlowStore>) => void,
+  targetMode: DisplayMode
+): void {
+  const state = get();
+  const displayModes = new Map(state.displayModes);
+  for (const [key] of displayModes) {
+    displayModes.set(key, targetMode);
+  }
+
+  const updatedNodes = state.nodes.map((n) => {
+    if (n.type === 'queryBox' || n.type === 'unresolvedBox') {
+      return { ...n, data: { ...n.data, displayMode: targetMode } };
+    }
+    return n;
+  });
+
+  const withHidden = computeHiddenStatesFromDisplayModes(updatedNodes as FlowNode[], displayModes);
+  let recalculated = recalculateLayout(withHidden as Node[]) as FlowNode[];
+  recalculated = applyCompactSizes(recalculated);
+  const retargetedEdges = retargetTableDependencyEdges(state.edges, recalculated);
+  set({ nodes: recalculated, edges: retargetedEdges, displayModes });
+}
+
+/**
  * ClauseBoxNode を縦展開した時の高さを概算する (bd-sql_viz_202604_2-oi5)。
  * label の文字数と clauseBox 幅から折り返し行数を見積もる。
  *
@@ -996,6 +1025,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // 親 QueryBox サイズを再計算 (ボトムアップで拡張される)
     const recalculated = recalculateLayout(restacked as Node[]);
     set({ nodes: recalculated as typeof state.nodes });
+  },
+
+  expandAll: () => {
+    setAllDisplayMode(get, set, 'detail');
+  },
+
+  compactAll: () => {
+    setAllDisplayMode(get, set, 'compact');
   },
 
   highlightLineage: (tableId: string, columnName: string) => {

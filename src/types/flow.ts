@@ -132,6 +132,10 @@ export interface FlowActions {
    * label を複数行に折り返し、node.height を拡張、parent QueryBox を再計算する。
    */
   toggleClauseExpand: (clauseId: string) => void;
+  /** 全ノードを detail (展開) に一括切替 (bd-sql_viz_202604_2-f4z) */
+  expandAll: () => void;
+  /** 全ノードを compact (折りたたみ) に一括切替 (bd-sql_viz_202604_2-f4z) */
+  compactAll: () => void;
   /** カラムクリック時のリネージュハイライト */
   highlightLineage: (tableId: string, columnName: string) => void;
   /** ハイライトをクリア */

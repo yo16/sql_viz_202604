@@ -79,9 +79,32 @@ export function FlowCanvas() {
   );
 
   const { handleCanvasClick } = useLineageHighlight();
+  const expandAll = useFlowStore((s) => s.expandAll);
+  const compactAll = useFlowStore((s) => s.compactAll);
 
   return (
     <div className={styles.container}>
+      {/* bd-sql_viz_202604_2-f4z: 全部開く / 全部閉じるボタン */}
+      <div className={styles.viewControls}>
+        <button
+          type="button"
+          className={styles.viewButton}
+          onClick={expandAll}
+          aria-label="全部開く"
+          title="全部開く"
+        >
+          全部開く
+        </button>
+        <button
+          type="button"
+          className={styles.viewButton}
+          onClick={compactAll}
+          aria-label="全部閉じる"
+          title="全部閉じる"
+        >
+          全部閉じる
+        </button>
+      </div>
       <ReactFlow
         nodes={localNodes}
         edges={localEdges}
