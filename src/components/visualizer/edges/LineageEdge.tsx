@@ -30,10 +30,12 @@ function LineageEdgeComponent({
   data,
   markerEnd,
 }: EdgeProps) {
-  const edgeData = data as unknown as LineageEdgeData | undefined;
+  const edgeData = data as unknown as (LineageEdgeData & { highlightDirection?: string }) | undefined;
   const dependencyType = edgeData?.dependencyType ?? 'table_dependency';
   const isHighlighted = edgeData?.isHighlighted ?? false;
   const isDimmed = edgeData?.isDimmed ?? false;
+  // bd-sql_viz_202604_2-2vk: アニメーション方向（トリガーから外向き）
+  const highlightDirection = edgeData?.highlightDirection;
 
   const [edgePath] = getBezierPath({
     sourceX,
@@ -49,6 +51,8 @@ function LineageEdgeComponent({
     dependencyType === 'table_dependency' ? styles.tableDependency : styles.columnLineage,
     isHighlighted ? styles.highlighted : '',
     isDimmed && !isHighlighted ? styles.dimmed : '',
+    isHighlighted && highlightDirection === 'upstream' ? styles.upstream : '',
+    isHighlighted && highlightDirection === 'downstream' ? styles.downstream : '',
   ]
     .filter(Boolean)
     .join(' ');

@@ -1007,6 +1007,9 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     // ハイライト対象のエッジIDを収集する
     const highlightedEdgeIds = new Set<string>();
+    // bd-sql_viz_202604_2-2vk: 上流/下流を別 Set で管理し、エッジに方向を付与
+    const upstreamEdgeIds = new Set<string>();
+    const downstreamEdgeIds = new Set<string>();
     // ハイライト対象のカラムIDを収集する (bd-26k)
     const highlightedColumns = new Set<string>();
     highlightedColumns.add(`${tableId}:${columnName}`);
@@ -1023,13 +1026,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         const edgeId = `col-edge-${dep.sourceTableId}-${currentTableId}-${dep.sourceColumn}-${currentColumn}`;
         if (!highlightedEdgeIds.has(edgeId)) {
           highlightedEdgeIds.add(edgeId);
+          upstreamEdgeIds.add(edgeId);
           highlightedColumns.add(`${dep.sourceTableId}:${dep.sourceColumn}`);
           traceUpstream(dep.sourceTableId, dep.sourceColumn);
         }
       }
     }
 
-    // 下流方向トレース (bd-26k): 全テーブルの dependencies を逆引きして下流を辿る
+    // 下流方向トレース (bd-26k)
     const downstreamIndex = new Map<string, Array<{ tableId: string; columnName: string }>>();
     for (const [tid, t] of tables) {
       for (const [colName, col] of t.columns) {
@@ -1047,6 +1051,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         const edgeId = `col-edge-${currentTableId}-${next.tableId}-${currentColumn}-${next.columnName}`;
         if (!highlightedEdgeIds.has(edgeId)) {
           highlightedEdgeIds.add(edgeId);
+          downstreamEdgeIds.add(edgeId);
           highlightedColumns.add(`${next.tableId}:${next.columnName}`);
           traceDownstream(next.tableId, next.columnName);
         }
@@ -1080,13 +1085,20 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       }
 
       // column_lineage エッジ: ハイライト対象ならisHighlighted=true
+      // bd-sql_viz_202604_2-2vk: highlightDirection でアニメーション方向を制御
       const isHighlighted = highlightedEdgeIds.has(edge.id);
+      const highlightDirection = upstreamEdgeIds.has(edge.id)
+        ? 'upstream'
+        : downstreamEdgeIds.has(edge.id)
+          ? 'downstream'
+          : undefined;
       return {
         ...edge,
         data: {
           ...edgeData,
           isHighlighted,
           isDimmed: hasHighlight && !isHighlighted,
+          highlightDirection,
         },
       };
     });

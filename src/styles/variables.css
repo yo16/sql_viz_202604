@@ -14,11 +14,11 @@
   --color-text-secondary: #475467;
   --color-text-inferred: #667085;
   --color-accent: #2563eb;
-  --color-highlight: #f59e0b;
+  --color-highlight: #e63946;
 
   /* エッジカラー */
   --color-edge-default: #d0d5dd;
-  --color-edge-highlighted: #2563eb;
+  --color-edge-highlighted: #dc2626;
   --color-edge-column-faded: rgba(208, 213, 221, 0.25);
 
   /* スペーシング */
