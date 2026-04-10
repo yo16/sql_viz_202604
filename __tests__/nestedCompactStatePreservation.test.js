@@ -57,9 +57,10 @@ test('scenario: outer detail -> inner compact -> outer compact -> outer detail: 
     const outerId = getTopQueryBoxId();
     const innerCteId = getMonthlyCteId();
 
-    // bd-boe: 初期状態が compact なので、まず外側と内側を detail に開く
+    // bd-boe: 初期状態: outer=compact, inner CTE=detail (hidden because outer compact)
+    // まず外側を開く
     useFlowStore.getState().toggleDisplayMode(outerId);   // compact → detail
-    useFlowStore.getState().toggleDisplayMode(innerCteId); // compact → detail
+    // 内側は detail のまま visible になる
 
     // Step 1: 内側 CTE (monthly_sales) を compact に切替
     useFlowStore.getState().toggleDisplayMode(innerCteId); // detail → compact
