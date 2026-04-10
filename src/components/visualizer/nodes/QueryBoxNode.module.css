@@ -115,3 +115,24 @@
   font-style: italic;
   white-space: nowrap;
 }
+
+/* bd-sql_viz_202604_2-eqv: リサイズハンドル */
+.resizeHandle {
+  background: transparent;
+  border: none;
+}
+
+.resizeIcon {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  cursor: nwse-resize;
+  line-height: 1;
+}
+
+.resizeIcon:hover {
+  opacity: 1;
+}

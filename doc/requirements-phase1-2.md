@@ -63,6 +63,9 @@ DWH構築時に使用される膨大なSQLクエリ群の**カラムレベルリ
 
 - ズーム / パン
 - テーブル（クエリ）boxのドラッグによる位置並べ替え
+- テーブル box の**右下ドラッグによるリサイズ** (bd-sql_viz_202604_2-eqv):
+  - 対象: QueryBoxNode, UnresolvedBoxNode のみ（ClauseBox / ColumnItem は対象外）
+  - React Flow の `NodeResizeControl` を使用、minWidth=180 / minHeight=60
   - ドラッグ可能なのは**ルートのQueryBox/UnresolvedBoxのみ**。内部のClauseBox（SELECT/FROM/WHERE）および ColumnItem は固定でドラッグ不可（bd-sql_viz_202604_2-35o）
 - boxクリックでの表示モード切替（トグル）:
   - **詳細表示**: クエリの全句構造を展開表示

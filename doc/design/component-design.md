@@ -219,6 +219,12 @@ compact モードでは `.compactBody` 内に列名リストを表示するが�
 - ルートの QueryBoxNode のみドラッグ可能（React Flow デフォルト）
 - 子ノードである ClauseBoxNode / ColumnItemNode は `draggable: false` で固定し、レイアウトが崩れないようにする
 
+**リサイズ** (bd-sql_viz_202604_2-eqv):
+- 右下に `NodeResizeControl` を配置し、ドラッグでリサイズ可能
+- minWidth=180, minHeight=60
+- リサイズアイコン `⟋` を右下に薄く表示、ホバーで濃くなる
+- 対象: QueryBoxNode, UnresolvedBoxNode のみ（ClauseBox / ColumnItem は対象外）
+
 **タイトルルール**:
 - CTAS: `targetTable` の値（例: `output_table`）
 - 単純SELECT: `[問い合わせ]` (F1-6)

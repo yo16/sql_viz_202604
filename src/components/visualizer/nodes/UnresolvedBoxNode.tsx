@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeResizeControl, type NodeProps } from '@xyflow/react';
 import type { UnresolvedBoxNodeData } from '@/types/flow';
 import { useFlowStore } from '@/stores/flowStore';
 import styles from './UnresolvedBoxNode.module.css';
@@ -40,6 +40,15 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
 
   return (
     <div className={styles.container}>
+      {/* bd-sql_viz_202604_2-eqv: 右下リサイズハンドル */}
+      <NodeResizeControl
+        minWidth={180}
+        minHeight={60}
+        position="bottom-right"
+        className={styles.resizeHandle}
+      >
+        <div className={styles.resizeIcon}>⟋</div>
+      </NodeResizeControl>
       <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <div
