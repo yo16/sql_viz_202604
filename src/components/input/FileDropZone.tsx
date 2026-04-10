@@ -129,8 +129,11 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
   const handleRemoveFile = useCallback((index: number) => {
     setFiles((prev) => {
       const updated = prev.filter((_, i) => i !== index);
-      // 削除後の最新ファイルリストを親に通知
-      onFilesLoaded(updated);
+      // 削除後の最新ファイルリストを親に通知。
+      // setFiles コールバック内で親の setState を呼ぶと
+      // "Cannot update a component while rendering" エラーになるため、
+      // queueMicrotask で次のマイクロタスクに遅延する。
+      queueMicrotask(() => onFilesLoaded(updated));
       return updated;
     });
   }, [onFilesLoaded]);
