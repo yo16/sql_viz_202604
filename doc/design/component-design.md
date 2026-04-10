@@ -383,6 +383,18 @@ interface UnresolvedBoxNodeData {
 - ヘッダーに `[未登録]` プレフィックスを表示
 - 推定カラムは `inferred` スタイルで表示
 
+**サイズ計算** (bd-sql_viz_202604_2-ple):
+- 以前は width/height が未設定で `arrangeTableNodes` が `QUERY_BOX_MIN_HEIGHT=80`
+  にフォールバックし、推定カラムが多い未登録テーブル同士が重なっていた
+- `computeUnresolvedNodeSize(numColumns, displayMode)` ヘルパーで算出:
+  - **detail**: width = QUERY_BOX_MIN_WIDTH (220)、height = COMPACT_BASE_HEIGHT +
+    max(numColumns, 1) * COMPACT_COLUMN_ROW_HEIGHT + PADDING_BOTTOM
+  - **compact**: width = QUERY_BOX_MIN_WIDTH、height = COMPACT_BASE_HEIGHT +
+    COMPACT_COLUMN_ROW_HEIGHT (1行: 推定カラム件数テキスト)
+- syncFromLineage でノード生成時に明示的に width/height/style を設定
+- `applyCompactSizes` でも unresolvedBox を処理し、toggleDisplayMode で
+  compact ⇄ detail 切替時にサイズが更新される
+
 **置換動作** (F2-2):
 - 後から該当テーブルを生成するSQLが登録された場合、`lineageStore.addQuery` 内で自動的に UnresolvedBoxNode → QueryBoxNode に置換される
 - flowStore の syncFromLineage で React Flow ノードが更新される

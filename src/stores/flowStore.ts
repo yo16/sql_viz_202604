@@ -94,6 +94,32 @@ function computeHiddenStatesFromDisplayModes<T extends FlowNode>(
 }
 
 /**
+ * UnresolvedBox ノードのサイズをカラム数と表示モードから算出する
+ * (bd-sql_viz_202604_2-ple)。
+ *
+ * - detail: titleBar + columns * rowHeight + padding
+ * - compact: titleBar + 1行 (推定カラム件数テキスト) + padding
+ */
+function computeUnresolvedNodeSize(
+  numColumns: number,
+  displayMode: DisplayMode
+): { width: number; height: number } {
+  const width = LAYOUT.QUERY_BOX_MIN_WIDTH;
+  if (displayMode === 'compact') {
+    return {
+      width,
+      height: LAYOUT.COMPACT_BASE_HEIGHT + LAYOUT.COMPACT_COLUMN_ROW_HEIGHT,
+    };
+  }
+  // detail: each inferred column row
+  const rows = Math.max(numColumns, 1);
+  return {
+    width,
+    height: LAYOUT.COMPACT_BASE_HEIGHT + rows * LAYOUT.COMPACT_COLUMN_ROW_HEIGHT + LAYOUT.PADDING_BOTTOM,
+  };
+}
+
+/**
  * compact モードの QueryBox サイズを列数から算出する (bd-sql_viz_202604_2-n5t)。
  * - width: LAYOUT.COMPACT_NODE_WIDTH 固定
  * - height: COMPACT_BASE_HEIGHT + min(cols, MAX_COLUMNS) * COMPACT_COLUMN_ROW_HEIGHT
@@ -116,16 +142,31 @@ function computeCompactNodeSize(numColumns: number): { width: number; height: nu
  */
 function applyCompactSizes<T extends FlowNode>(nodes: T[]): T[] {
   return nodes.map((n) => {
-    if (n.type !== 'queryBox') return n;
-    const data = n.data as QueryBoxNodeData | undefined;
-    if (data?.displayMode !== 'compact') return n;
-    const size = computeCompactNodeSize(data.compactColumns?.length ?? 0);
-    return {
-      ...n,
-      width: size.width,
-      height: size.height,
-      style: { ...n.style, width: size.width, height: size.height },
-    };
+    // queryBox の compact サイズ (bd-n5t)
+    if (n.type === 'queryBox') {
+      const data = n.data as QueryBoxNodeData | undefined;
+      if (data?.displayMode !== 'compact') return n;
+      const size = computeCompactNodeSize(data.compactColumns?.length ?? 0);
+      return {
+        ...n,
+        width: size.width,
+        height: size.height,
+        style: { ...n.style, width: size.width, height: size.height },
+      };
+    }
+    // unresolvedBox の compact/detail サイズ (bd-ple)
+    if (n.type === 'unresolvedBox') {
+      const data = n.data as UnresolvedBoxNodeData | undefined;
+      const dm = data?.displayMode ?? 'detail';
+      const size = computeUnresolvedNodeSize(data?.inferredColumns?.length ?? 0, dm);
+      return {
+        ...n,
+        width: size.width,
+        height: size.height,
+        style: { ...n.style, width: size.width, height: size.height },
+      };
+    }
+    return n;
   });
 }
 
@@ -704,12 +745,20 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           inferredColumns: Array.from(table.columns.keys()),
           displayMode: dm,
         };
+        // bd-sql_viz_202604_2-ple: カラム数に応じた明示的サイズを設定して
+        // arrangeTableNodes の位置計算で重ならないようにする
+        const unresolvedSize = computeUnresolvedNodeSize(
+          data.inferredColumns.length, dm
+        );
         nodes.push({
           id: tableId,
           type: 'unresolvedBox',
           position: { x: 0, y: 0 },
           data,
-        });
+          width: unresolvedSize.width,
+          height: unresolvedSize.height,
+          style: { width: unresolvedSize.width, height: unresolvedSize.height },
+        } as FlowNode);
       }
 
       // テーブル間のエッジを生成（dependsOn から）
