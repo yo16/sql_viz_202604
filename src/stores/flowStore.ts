@@ -1023,7 +1023,9 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         : updatedNodes;
 
     // 親 QueryBox サイズを再計算 (ボトムアップで拡張される)
-    const recalculated = recalculateLayout(restacked as Node[]);
+    let recalculated = recalculateLayout(restacked as Node[]) as FlowNode[];
+    // 他の compact ノードのサイズが recalculateLayout で MIN に潰されるのを防ぐ
+    recalculated = applyCompactSizes(recalculated);
     set({ nodes: recalculated as typeof state.nodes });
   },
 
