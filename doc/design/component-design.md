@@ -528,6 +528,12 @@ interface LineageEdgeData {
   - 子が compact だった場合: 子は compact のまま表示される
 - displayMode は各 QueryBoxNode ごとに独立管理される
 
+**初期状態 compact (bd-sql_viz_202604_2-boe)**:
+`syncFromLineage` 完了後、全 queryBox / unresolvedBox を自動で compact に切替える。
+位置 (position) は **detail レイアウト基準のまま維持** するため、個々のboxを開いても
+他のboxと重ならない。これは「detail でレイアウト計算 → 最終ステップで compact に
+切替え（サイズのみ更新、位置は変えない）→ hidden 再計算」の順で実現する。
+
 **ネスト compact 状態の保持** (bd-sql_viz_202604_2-8dp):
 以前は `toggleDisplayMode` が全子孫に `hidden: isNowCompact` を一律設定していた
 ため、「外側 detail → 内側 compact → 外側 compact → 外側 detail」の操作列で
