@@ -915,10 +915,29 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const arrangedRoots = arrangeTableNodes(rootNodes as Node[], tableDependencies) as FlowNode[];
     let finalNodes = [...arrangedRoots, ...nonRootNodes];
 
-    // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
+    // bd-sql_viz_202604_2-boe: 初期表示は全 box を compact にする。
+    // ここまでで detail モードで完全にレイアウト済み（clauseBox 生成済み、位置確定済み）。
+    // 位置 (position) はそのまま保持し、displayMode・サイズ・hidden だけを compact 用に切替える。
+    // これにより開いても干渉しない配置で、閉じた状態から開始できる。
+    //
+    // 手順:
+    // 1. displayModes Map を全て 'compact' に
+    // 2. ノードの data.displayMode を 'compact' に
+    // 3. applyCompactSizes でサイズだけ compact 用に (位置は変えない)
+    // 4. computeHiddenStatesFromDisplayModes で clauseBox/columnItem を hidden に
+    for (const [key] of displayModes) {
+      displayModes.set(key, 'compact');
+    }
+    finalNodes = finalNodes.map((n) => {
+      if (n.type === 'queryBox' || n.type === 'unresolvedBox') {
+        return { ...n, data: { ...n.data, displayMode: 'compact' } };
+      }
+      return n;
+    });
     finalNodes = applyCompactSizes(finalNodes);
+    finalNodes = computeHiddenStatesFromDisplayModes(finalNodes, displayModes);
 
-    // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
+    // bd-sql_viz_202604_2-q8n: table_dependency エッジを再ターゲット (compact → QueryBox 本体)
     const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
 
     set({ nodes: finalNodes, edges: finalEdges, displayModes });
