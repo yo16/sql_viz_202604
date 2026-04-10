@@ -35,6 +35,13 @@
   outline: 1px solid var(--color-highlight);
 }
 
+/* bd-sql_viz_202604_2-d58: トリガー列（クリック元）はより濃い強調 */
+.triggerHighlighted {
+  background: rgba(245, 158, 11, 0.35);
+  outline: 2px solid var(--color-highlight);
+  font-weight: 700;
+}
+
 .dimmed {
   opacity: 0.35;
 }

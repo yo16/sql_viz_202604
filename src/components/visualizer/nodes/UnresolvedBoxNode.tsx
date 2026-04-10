@@ -72,10 +72,15 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
               // bd-sql_viz_202604_2-4et: リネージュハイライト判定
               const isColHighlighted = highlightedColumns !== null &&
                 highlightedColumns.has(`${id}:${col}`);
+              // bd-sql_viz_202604_2-d58: トリガー列はより目立つスタイル
+              const isColTrigger = isColHighlighted &&
+                highlightPath?.tableId === id &&
+                highlightPath?.columnName === col;
               const isColDimmed = highlightPath !== null && !isColHighlighted;
               const colClass = [
                 styles.inferredColumn,
-                isColHighlighted ? styles.inferredColumnHighlighted : '',
+                isColTrigger ? styles.inferredColumnTrigger :
+                  (isColHighlighted ? styles.inferredColumnHighlighted : ''),
                 isColDimmed ? styles.inferredColumnDimmed : '',
               ].filter(Boolean).join(' ');
               return (
