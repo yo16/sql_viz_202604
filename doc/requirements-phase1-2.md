@@ -77,6 +77,11 @@ DWH構築時に使用される膨大なSQLクエリ群の**カラムレベルリ
     - SELECT 以外の ClauseBox は固定幅で表示しているため長い label が `...` で省略される。**ヘッダの ▸/▾ クリックで縦展開可能**にし、複数行で読めるようにする（bd-sql_viz_202604_2-oi5）
     - CTEやサブクエリを持つクエリでも、ネスト子ノードの下にメインクエリの clauseBox 群を横並び配置する（bd-sql_viz_202604_2-u8l, bd-sql_viz_202604_2-q82）
   - **カラム一覧表示**: SELECT句のカラム名のみをコンパクトに表示
+- **全部開く / 全部閉じるボタン** (bd-sql_viz_202604_2-f4z):
+  - FlowCanvas 右上に「全部開く」「全部閉じる」ボタンを配置
+  - 「全部開く」: 全 QueryBox / UnresolvedBox を detail に一括切替（`expandAll()`）
+  - 「全部閉じる」: 全ノードを compact に一括切替（`compactAll()`）
+  - 各タイトルバーを1つずつクリックするのと同じ動作を全ノードに対して一括実行
 
 #### F1-5: CREATE TABLE AS SELECT 対応
 

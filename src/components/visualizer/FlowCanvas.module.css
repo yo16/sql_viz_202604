@@ -3,4 +3,31 @@
   height: 100%;
   min-height: 400px;
   background: var(--color-bg-secondary);
+  position: relative;
+}
+
+/* bd-sql_viz_202604_2-f4z: 全部開く / 全部閉じるボタン */
+.viewControls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+}
+
+.viewButton {
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-node);
+  border-radius: 4px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.viewButton:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
 }
