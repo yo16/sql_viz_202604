@@ -4,6 +4,7 @@ import { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ColumnItemNodeData } from '@/types/flow';
 import { useLineageHighlight } from '@/hooks/useLineageHighlight';
+import { useFlowStore } from '@/stores/flowStore';
 import styles from './ColumnItemNode.module.css';
 
 /**
@@ -27,12 +28,13 @@ function ColumnItemNodeComponent({ data, id }: NodeProps) {
   const { displayName, certainty, conditionText, isFromStar } = nodeData;
 
   const { handleColumnClick, highlightPath } = useLineageHighlight();
-  // highlightPath から isHighlighted を動的計算する（ColumnItemNodeData.isHighlighted に依存しない）
+  // bd-sql_viz_202604_2-26k: highlightedColumns からリネージュチェーン上の
+  // 全カラム（上流＋下流＋クリック自身）のハイライトを判定する
+  const highlightedColumns = useFlowStore((s) => s.highlightedColumns);
   const parts = id.split(':');
   const tableId = parts[0] ?? id;
-  const isHighlighted =
-    highlightPath?.tableId === tableId &&
-    highlightPath?.columnName === displayName;
+  const isHighlighted = highlightedColumns !== null &&
+    highlightedColumns.has(`${tableId}:${displayName}`);
   // ハイライト発動中で自分が対象外の場合はdim
   const isDimmed = highlightPath !== null && !isHighlighted;
 
