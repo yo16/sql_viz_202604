@@ -119,6 +119,11 @@ export interface FlowState {
    * null = ハイライト非発動時。
    */
   highlightedColumns: Set<string> | null;
+  /**
+   * ユーザーが手動リサイズしたノードのサイズ。
+   * recalculateLayout / applyCompactSizes の後に復元して上書きを防ぐ。
+   */
+  userResizedNodes: Map<string, { width: number; height: number }>;
 }
 
 /** flowStore のアクション型 */

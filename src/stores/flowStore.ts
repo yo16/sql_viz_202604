@@ -293,8 +293,31 @@ function setAllDisplayMode(
   const withHidden = computeHiddenStatesFromDisplayModes(updatedNodes as FlowNode[], displayModes);
   let recalculated = recalculateLayout(withHidden as Node[]) as FlowNode[];
   recalculated = applyCompactSizes(recalculated);
+  // bd-sql_viz_202604_2-eqv: ユーザーリサイズを復元
+  recalculated = restoreUserResizedNodes(recalculated, get().userResizedNodes);
   const retargetedEdges = retargetTableDependencyEdges(state.edges, recalculated);
   set({ nodes: recalculated, edges: retargetedEdges, displayModes });
+}
+
+/**
+ * recalculateLayout / applyCompactSizes の後に、ユーザーが手動リサイズしたノードの
+ * サイズを復元する。これによりレイアウト再計算でユーザーのリサイズが上書きされない。
+ */
+function restoreUserResizedNodes<T extends FlowNode>(
+  nodes: T[],
+  userResizedNodes: Map<string, { width: number; height: number }>
+): T[] {
+  if (userResizedNodes.size === 0) return nodes;
+  return nodes.map((n) => {
+    const dims = userResizedNodes.get(n.id);
+    if (!dims) return n;
+    return {
+      ...n,
+      width: dims.width,
+      height: dims.height,
+      style: { ...n.style, width: dims.width, height: dims.height },
+    };
+  });
 }
 
 /**
@@ -735,6 +758,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   displayModes: new Map(),
   highlightPath: null,
   highlightedColumns: null,
+  userResizedNodes: new Map(),
 
   syncFromLineage: (tables: Map<string, TableNode>) => {
     // TableNode マップから React Flow ノード/エッジを生成する。
@@ -950,7 +974,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // bd-sql_viz_202604_2-q8n: table_dependency エッジを FROM clauseBox に再ターゲット
     const finalEdges = retargetTableDependencyEdges(edges, finalNodes);
 
-    set({ nodes: finalNodes, edges: finalEdges, displayModes });
+    set({ nodes: finalNodes, edges: finalEdges, displayModes, userResizedNodes: new Map() });
   },
 
   toggleDisplayMode: (tableId: string) => {
@@ -980,6 +1004,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     // bd-sql_viz_202604_2-n5t: compact モードの queryBox 実寸を override
     recalculated = applyCompactSizes(recalculated);
+    // bd-sql_viz_202604_2-eqv: ユーザーリサイズを復元
+    recalculated = restoreUserResizedNodes(recalculated, get().userResizedNodes);
 
     // bd-sql_viz_202604_2-q8n: 表示モード変更後 table_dependency エッジを再ターゲット
     const retargetedEdges = retargetTableDependencyEdges(state.edges, recalculated);
@@ -1026,6 +1052,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     let recalculated = recalculateLayout(restacked as Node[]) as FlowNode[];
     // 他の compact ノードのサイズが recalculateLayout で MIN に潰されるのを防ぐ
     recalculated = applyCompactSizes(recalculated);
+    // bd-sql_viz_202604_2-eqv: ユーザーリサイズを復元
+    recalculated = restoreUserResizedNodes(recalculated, get().userResizedNodes);
     set({ nodes: recalculated as typeof state.nodes });
   },
 
@@ -1052,7 +1080,9 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         ? { ...n, width, height, style: { ...n.style, width, height } }
         : n
     );
-    set({ nodes });
+    const userResizedNodes = new Map(state.userResizedNodes);
+    userResizedNodes.set(nodeId, { width, height });
+    set({ nodes, userResizedNodes });
   },
 
   highlightLineage: (tableId: string, columnName: string) => {

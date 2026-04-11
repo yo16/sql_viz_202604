@@ -37,7 +37,9 @@
       "Bash(npx tsx:*)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx --prefix \"D:/Public/github/yo16/sql_viz_202604_2\" next lint*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(git config:*)",
+      "Bash(gh repo:*)"
     ]
   }
 }
