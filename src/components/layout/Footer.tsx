@@ -8,7 +8,7 @@ export function Footer() {
       </span>
       <span className={styles.separator}>|</span>
       <span>
-        自社環境への導入については<a href="https://smallpiece.jp/contact" target="_blank" rel="noopener noreferrer" className={styles.link}>お問い合わせ</a>ください
+        お気軽に<a href="https://smallpiece.jp/contact" target="_blank" rel="noopener noreferrer" className={styles.link}>お問い合わせ</a>ください
       </span>
     </footer>
   );
