@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Header } from './Header';
+import { Footer } from './Footer';
 import { SqlInputPanel } from '@/components/input/SqlInputPanel';
 import { FileDropZone, type FileContent } from '@/components/input/FileDropZone';
 import { FlowCanvas } from '@/components/visualizer/FlowCanvas';
@@ -114,6 +115,7 @@ export function MainView() {
           <FlowCanvas />
         </main>
       </div>
+      <Footer />
     </div>
   );
 }
