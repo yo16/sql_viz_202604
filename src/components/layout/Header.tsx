@@ -17,7 +17,7 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>SQL Visualizer</h1>
+      <h1 className={styles.title}>SQL Lineage Viz</h1>
       <div className={styles.actions}>
         <DialectSelector value={dialect} onChange={setDialect} />
         <ResetButton />
