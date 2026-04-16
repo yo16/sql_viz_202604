@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLineageStore } from '@/stores/lineageStore';
+import { useLocale } from '@/i18n/useLocale';
 import styles from './SqlInputPanel.module.css';
 
 export interface SqlInputPanelProps {
@@ -25,6 +26,7 @@ export interface SqlInputPanelProps {
 export function SqlInputPanel({ onSubmit, isLoading }: SqlInputPanelProps) {
   const [sql, setSql] = useState('');
   const resetCounter = useLineageStore((s) => s.resetCounter);
+  const { t } = useLocale();
 
   // lineageStore.resetAll() が呼ばれたら入力テキストをクリア
   useEffect(() => {
@@ -54,7 +56,7 @@ export function SqlInputPanel({ onSubmit, isLoading }: SqlInputPanelProps) {
     <div className={styles.container}>
       <div className={styles.header}>
         <label htmlFor="sql-input" className={styles.label}>
-          SQL入力
+          {t.panel.sqlInputTitle}
         </label>
         {sql.length > 0 && (
           <button
@@ -62,9 +64,9 @@ export function SqlInputPanel({ onSubmit, isLoading }: SqlInputPanelProps) {
             className={styles.clearButton}
             onClick={handleClear}
             disabled={isLoading}
-            aria-label="クリア"
+            aria-label={t.button.clearAriaLabel}
           >
-            クリア
+            {t.button.clear}
           </button>
         )}
       </div>
@@ -75,23 +77,23 @@ export function SqlInputPanel({ onSubmit, isLoading }: SqlInputPanelProps) {
         value={sql}
         onChange={(e) => setSql(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="SELECT * FROM users ..."
+        placeholder={t.panel.sqlInputPlaceholder}
         disabled={isLoading}
         spellCheck={false}
       />
 
       <div className={styles.footer}>
         <span className={styles.hint}>
-          Ctrl + Enter で実行
+          {t.panel.ctrlEnterHint}
         </span>
         <button
           type="button"
           className={styles.submitButton}
           onClick={handleSubmit}
           disabled={isSubmitDisabled}
-          aria-label="パース実行"
+          aria-label={t.button.parse}
         >
-          {isLoading ? '実行中...' : 'パース実行'}
+          {isLoading ? t.button.parsing : t.button.parse}
         </button>
       </div>
     </div>

@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useLineageStore } from '@/stores/lineageStore';
+import { useLocale } from '@/i18n/useLocale';
 import styles from './FileDropZone.module.css';
+
+/** プレースホルダ {key} を文字列で置換する小さなヘルパ */
+function format(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : `{${key}}`
+  );
+}
 
 export interface FileContent {
   fileName: string;
@@ -32,6 +40,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resetCounter = useLineageStore((s) => s.resetCounter);
+  const { t } = useLocale();
 
   // lineageStore.resetAll() が呼ばれたらファイルリストとエラーをクリア
   useEffect(() => {
@@ -53,7 +62,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
     }
 
     if (invalidFiles.length > 0) {
-      setError(`.sql ファイルのみ受け付けます: ${invalidFiles.join(', ')}`);
+      setError(format(t.error.invalidFileType, { files: invalidFiles.join(', ') }));
     } else {
       setError(null);
     }
@@ -73,7 +82,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
     );
 
     return contents;
-  }, []);
+  }, [t]);
 
   const handleFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -85,10 +94,11 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
         // 現在のファイルリスト全体を親に通知
         onFilesLoaded(updated);
       } catch (e) {
-        setError(`ファイル読み込みエラー: ${e instanceof Error ? e.message : '不明なエラー'}`);
+        const message = e instanceof Error ? e.message : t.error.unknownError;
+        setError(format(t.error.fileReadFailedDetail, { message }));
       }
     },
-    [files, readFiles, onFilesLoaded]
+    [files, readFiles, onFilesLoaded, t]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -163,7 +173,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-label=".sqlファイルをドロップまたはクリックで選択"
+        aria-label={t.panel.fileDropAriaLabel}
       >
         <input
           ref={fileInputRef}
@@ -175,7 +185,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
           aria-hidden="true"
         />
         <span className={styles.dropText}>
-          {isDragging ? 'ここにドロップ' : '.sqlファイルをドロップ またはクリックで選択'}
+          {isDragging ? t.panel.fileDropDragging : t.panel.fileDropPlaceholder}
         </span>
       </div>
 
@@ -192,7 +202,7 @@ export function FileDropZone({ onFilesLoaded }: FileDropZoneProps) {
                 type="button"
                 className={styles.removeButton}
                 onClick={() => handleRemoveFile(index)}
-                aria-label={`${file.fileName} を削除`}
+                aria-label={format(t.panel.removeFileAriaLabel, { fileName: file.fileName })}
               >
                 ×
               </button>
