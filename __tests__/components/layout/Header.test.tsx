@@ -64,4 +64,30 @@ describe('Header（LanguageSelector 組込）', () => {
       expect(screen.getByRole('button', { name: 'JA' })).toHaveAttribute('aria-pressed', 'false');
     });
   });
+
+  describe('タイトル（英語固定文字列）', () => {
+    it('SSR初期 (en) でタイトルが "SQL Lineage Viz"', () => {
+      render(<Header />);
+      expect(screen.getByRole('heading', { name: 'SQL Lineage Viz' })).toBeInTheDocument();
+    });
+
+    it('locale が ja でもタイトルは "SQL Lineage Viz"（英語固定）', () => {
+      useLocaleStore.setState({ locale: 'ja' });
+      render(<Header />);
+      expect(screen.getByRole('heading', { name: 'SQL Lineage Viz' })).toBeInTheDocument();
+    });
+
+    it('locale 切替で本文（heading）文字列が変わらない', async () => {
+      const user = userEvent.setup();
+      render(<Header />);
+      const heading1 = screen.getByRole('heading').textContent;
+      await user.click(screen.getByRole('button', { name: 'JA' }));
+      const heading2 = screen.getByRole('heading').textContent;
+      await user.click(screen.getByRole('button', { name: 'EN' }));
+      const heading3 = screen.getByRole('heading').textContent;
+      expect(heading1).toBe('SQL Lineage Viz');
+      expect(heading2).toBe('SQL Lineage Viz');
+      expect(heading3).toBe('SQL Lineage Viz');
+    });
+  });
 });
