@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { LocaleBootstrap } from "@/components/LocaleBootstrap";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-2RGNVSTMYN";
@@ -111,6 +112,7 @@ export default function RootLayout({
           id="locale-init"
           dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }}
         />
+        <LocaleBootstrap />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
