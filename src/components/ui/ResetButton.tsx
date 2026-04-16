@@ -1,6 +1,7 @@
 "use client";
 
 import { useLineageStore } from '@/stores/lineageStore';
+import { useLocale } from '@/i18n/useLocale';
 import styles from './ResetButton.module.css';
 
 /**
@@ -14,9 +15,10 @@ import styles from './ResetButton.module.css';
  */
 export function ResetButton() {
   const resetAll = useLineageStore((s) => s.resetAll);
+  const { t } = useLocale();
 
   const handleClick = () => {
-    const confirmed = window.confirm('すべての入力をリセットしますか？');
+    const confirmed = window.confirm(t.confirm.resetAll);
     if (confirmed) {
       resetAll();
     }
@@ -27,9 +29,9 @@ export function ResetButton() {
       type="button"
       className={styles.button}
       onClick={handleClick}
-      aria-label="すべてリセット"
+      aria-label={t.button.resetAriaLabel}
     >
-      リセット
+      {t.button.reset}
     </button>
   );
 }
