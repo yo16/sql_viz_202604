@@ -1,12 +1,14 @@
 {
-  "name": "sql_viz_202604_2",
+  "name": "sql-lineage-viz",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",

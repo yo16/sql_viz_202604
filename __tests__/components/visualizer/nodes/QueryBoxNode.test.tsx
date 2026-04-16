@@ -20,10 +20,7 @@ function renderNode(props: { title: string; queryType?: 'select' | 'ctas'; displ
       type="queryBox"
       selected={false}
       zIndex={0}
-      isConnectable
-      xPos={0}
-      yPos={0}
-      dragging={false}
+      isConnectable dragging={false} selectable={true} deletable={true} draggable={true} positionAbsoluteX={0} positionAbsoluteY={0}
     />
   );
 }
@@ -124,10 +121,7 @@ describe('QueryBoxNode useLocale 化', () => {
           type="queryBox"
           selected={false}
           zIndex={0}
-          isConnectable
-          xPos={0}
-          yPos={0}
-          dragging={false}
+          isConnectable dragging={false} selectable={true} deletable={true} draggable={true} positionAbsoluteX={0} positionAbsoluteY={0}
         />
       );
       expect(screen.getByText('... (omitted)')).toBeInTheDocument();
@@ -153,10 +147,7 @@ describe('QueryBoxNode useLocale 化', () => {
           type="queryBox"
           selected={false}
           zIndex={0}
-          isConnectable
-          xPos={0}
-          yPos={0}
-          dragging={false}
+          isConnectable dragging={false} selectable={true} deletable={true} draggable={true} positionAbsoluteX={0} positionAbsoluteY={0}
         />
       );
       expect(screen.getByText('...（省略）')).toBeInTheDocument();

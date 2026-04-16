@@ -17,10 +17,7 @@ function renderNode(props: { tableName?: string; inferredColumns?: string[]; dis
       type="unresolvedBox"
       selected={false}
       zIndex={0}
-      isConnectable
-      xPos={0}
-      yPos={0}
-      dragging={false}
+      isConnectable dragging={false} selectable={true} deletable={true} draggable={true} positionAbsoluteX={0} positionAbsoluteY={0}
     />
   );
 }
