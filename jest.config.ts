@@ -3,6 +3,8 @@ import type { Config } from 'jest';
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
+  // jest-dom matchers (toBeInTheDocument, toHaveAttribute 等) を全テストで有効化
+  setupFilesAfterEnv: ['<rootDir>/__tests__/helpers/jestDomSetup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     // CSS Modules をモック
