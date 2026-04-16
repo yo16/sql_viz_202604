@@ -13,6 +13,8 @@ const config: Config = {
     '\\.css$': '<rootDir>/__tests__/helpers/cssModuleMock.js',
     // @xyflow/react をモック（サーバーサイド実行不可のブラウザ専用ライブラリ）
     '^@xyflow/react$': '<rootDir>/__tests__/helpers/xyflowMock.ts',
+    // @vercel/analytics/next は ESM-only のためテスト環境でモック
+    '^@vercel/analytics/next$': '<rootDir>/__tests__/helpers/vercelAnalyticsMock.ts',
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {

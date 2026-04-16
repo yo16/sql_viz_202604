@@ -11,6 +11,7 @@
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.10.2",
     "next": "16.2.2",
     "node-sql-parser": "^5.4.0",
