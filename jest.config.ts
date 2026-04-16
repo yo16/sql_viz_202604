@@ -7,6 +7,8 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     // CSS Modules をモック
     '\\.module\\.css$': '<rootDir>/__tests__/helpers/cssModuleMock.js',
+    // 通常の .css（globals.css 等）もモック
+    '\\.css$': '<rootDir>/__tests__/helpers/cssModuleMock.js',
     // @xyflow/react をモック（サーバーサイド実行不可のブラウザ専用ライブラリ）
     '^@xyflow/react$': '<rootDir>/__tests__/helpers/xyflowMock.ts',
   },

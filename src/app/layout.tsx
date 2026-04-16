@@ -4,9 +4,9 @@ import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-2RGNVSTMYN";
 const SITE_URL = "https://sql-viz.com";
-const SITE_TITLE = "SQL Lineage Viz - SQLカラムリネージュ可視化ツール";
+const SITE_TITLE = "SQL Lineage Viz - SQL Column Lineage Visualization Tool";
 const SITE_DESCRIPTION =
-  "SQLのカラムレベルのリネージュをインタラクティブなグラフで可視化。SELECT文を貼り付けるだけで、テーブル間のカラム依存関係を自動解析し、データフローを直感的に把握できます。";
+  "Visualize SQL column-level lineage on an interactive graph. Just paste your SELECT statements and the tool automatically analyzes table-to-table column dependencies, helping you understand data flow at a glance.";
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -25,10 +25,10 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "SQL Lineage Viz - SQLカラムリネージュ可視化ツール",
+        alt: "SQL Lineage Viz - SQL Column Lineage Visualization Tool",
       },
     ],
-    locale: "ja_JP",
+    locale: "en_US",
     type: "website",
   },
   twitter: {
@@ -47,16 +47,15 @@ export const metadata: Metadata = {
   },
   keywords: [
     "SQL",
-    "リネージュ",
     "lineage",
-    "カラムリネージュ",
-    "データフロー",
-    "可視化",
-    "データリネージュ",
-    "SQL解析",
-    "テーブル依存関係",
-    "data lineage",
     "column lineage",
+    "data lineage",
+    "data flow",
+    "visualization",
+    "SQL analysis",
+    "table dependencies",
+    "DWH",
+    "data warehouse",
   ],
 };
 
@@ -66,7 +65,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
@@ -96,7 +95,7 @@ export default function RootLayout({
               "offers": {
                 "@type": "Offer",
                 "price": "0",
-                "priceCurrency": "JPY",
+                "priceCurrency": "USD",
               },
               "provider": {
                 "@type": "Organization",
