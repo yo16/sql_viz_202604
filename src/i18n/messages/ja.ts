@@ -158,5 +158,15 @@ export const ja = {
   },
 } as const;
 
-/** 翻訳リソースの型。`ja.ts` を正のソースとし `en.ts` はこの型に適合させる。 */
-export type Messages = typeof ja;
+/**
+ * 翻訳リソースの型。`ja.ts` を正のソースとし `en.ts` はこの型に適合させる。
+ *
+ * `ja` は `as const` で各文字列が literal type に固定されているため、そのまま
+ * `typeof ja` を使うと `en.ts` で異なる文字列を入れたときに型エラーになる。
+ * 文字列型を `string` に広げる `Widen` を介して構造のみを型として抽出する。
+ */
+type Widen<T> = T extends string
+  ? string
+  : { [K in keyof T]: Widen<T[K]> };
+
+export type Messages = Widen<typeof ja>;
