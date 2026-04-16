@@ -1,6 +1,7 @@
 "use client";
 
 import type { SqlDialect } from '@/types/api';
+import { useLocale } from '@/i18n/useLocale';
 import styles from './DialectSelector.module.css';
 
 interface DialectSelectorProps {
@@ -24,10 +25,11 @@ const DIALECT_OPTIONS: Array<{ value: SqlDialect; label: string; disabled: boole
  * BigQuery が初期選択。PostgreSQL/MySQL/SQLite は将来対応（disabled表示）。
  */
 export function DialectSelector({ value, onChange }: DialectSelectorProps) {
+  const { t } = useLocale();
   return (
     <div className={styles.container}>
       <label className={styles.label} htmlFor="dialect-selector">
-        DB方言
+        {t.panel.dialectLabel}
       </label>
       <select
         id="dialect-selector"
