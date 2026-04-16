@@ -4,6 +4,8 @@ import { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { ClauseBoxNodeData } from '@/types/flow';
 import { useFlowStore } from '@/stores/flowStore';
+import { useLocale } from '@/i18n/useLocale';
+import type { Messages } from '@/i18n/messages';
 import styles from './ClauseBoxNode.module.css';
 
 /** JOIN種別→アイコンのマッピング（設計: component-design.md セクション3.2） */
@@ -14,6 +16,23 @@ const JOIN_ICONS: Record<string, string> = {
   FULL: '⟗',
   CROSS: '×',
 };
+
+/**
+ * 句種別 (SELECT/FROM/WHERE/GROUP BY/HAVING/ORDER BY) を、現在 locale の表示ラベルに変換する。
+ * ja: "SELECT句" / en: "SELECT" のように、ja には "句" が付く（設計 i18n.md §6.4）。
+ * 既知の句以外（将来拡張時等）は keyword をそのまま返す。
+ */
+function clauseLabel(clauseType: string, t: Messages): string {
+  switch (clauseType) {
+    case 'SELECT': return t.sql.clauseSelect;
+    case 'FROM': return t.sql.clauseFrom;
+    case 'WHERE': return t.sql.clauseWhere;
+    case 'GROUP BY': return t.sql.clauseGroupBy;
+    case 'HAVING': return t.sql.clauseHaving;
+    case 'ORDER BY': return t.sql.clauseOrderBy;
+    default: return clauseType;
+  }
+}
 
 /**
  * 句ノード — SELECT, FROM, WHERE 等の句を表すコンテナノード。
@@ -37,6 +56,7 @@ function ClauseBoxNodeComponent({ data, id }: NodeProps) {
 
   const toggleClauseExpand = useFlowStore((s) => s.toggleClauseExpand);
   const isExpandable = clauseType !== 'SELECT';
+  const { t } = useLocale();
 
   const handleToggle = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
@@ -68,9 +88,9 @@ function ClauseBoxNodeComponent({ data, id }: NodeProps) {
         onKeyDown={isExpandable ? handleKeyDown : undefined}
         role={isExpandable ? 'button' : undefined}
         tabIndex={isExpandable ? 0 : undefined}
-        title={isExpandable ? (expanded ? '折りたたむ' : '展開') : undefined}
+        title={isExpandable ? (expanded ? t.clause.collapse : t.clause.expand) : undefined}
       >
-        <span className={styles.clauseType}>{clauseType}</span>
+        <span className={styles.clauseType}>{clauseLabel(clauseType, t)}</span>
         {joinIcon && (
           <span className={styles.joinIcon} title={`${joinIcon.type} JOIN`}>
             {joinIcon.icon}

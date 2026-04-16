@@ -4,7 +4,14 @@ import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizeControl, type NodeProps } from '@xyflow/react';
 import type { UnresolvedBoxNodeData } from '@/types/flow';
 import { useFlowStore } from '@/stores/flowStore';
+import { useLocale } from '@/i18n/useLocale';
 import styles from './UnresolvedBoxNode.module.css';
+
+function format(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : `{${key}}`
+  );
+}
 
 /**
  * 未登録テーブルノード — スキーマ未登録テーブルを破線枠で表示。
@@ -27,6 +34,7 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
   // bd-sql_viz_202604_2-4et: リネージュハイライト対応
   const highlightedColumns = useFlowStore((s) => s.highlightedColumns);
   const highlightPath = useFlowStore((s) => s.highlightPath);
+  const { t } = useLocale();
 
   const handleToggle = useCallback(() => {
     toggleDisplayMode(id);
@@ -63,9 +71,9 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        title={displayMode === 'compact' ? 'クリックで詳細表示' : 'クリックでコンパクト表示'}
+        title={displayMode === 'compact' ? t.node.clickToDetail : t.node.clickToCompact}
       >
-        <span className={styles.prefix}>[未登録]</span>
+        <span className={styles.prefix}>{t.node.unresolvedPrefix}</span>
         <span className={styles.title}>{tableName}</span>
         <span className={styles.toggleIcon}>
           {displayMode === 'compact' ? '▸' : '▾'}
@@ -76,8 +84,8 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
         <div className={styles.compactBody}>
           <span className={styles.compactCount}>
             {inferredColumns.length > 0
-              ? `${inferredColumns.length} 件の推定カラム`
-              : 'カラム情報なし'}
+              ? format(t.node.inferredColumnCount, { count: inferredColumns.length })
+              : t.node.noColumnInfo}
           </span>
         </div>
       ) : (
@@ -105,7 +113,7 @@ function UnresolvedBoxNodeComponent({ data, id }: NodeProps) {
               );
             })
           ) : (
-            <div className={styles.emptyColumns}>推定カラムなし</div>
+            <div className={styles.emptyColumns}>{t.node.noInferredColumns}</div>
           )}
         </div>
       )}

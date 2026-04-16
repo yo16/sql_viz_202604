@@ -4,7 +4,20 @@ import { memo, useCallback } from 'react';
 import { Handle, Position, NodeResizeControl, type NodeProps } from '@xyflow/react';
 import type { QueryBoxNodeData } from '@/types/flow';
 import { useFlowStore } from '@/stores/flowStore';
+import { useLocale } from '@/i18n/useLocale';
+import type { Messages } from '@/i18n/messages';
 import styles from './QueryBoxNode.module.css';
+
+/**
+ * lib/lineage で生成された日本語プレースホルダタイトル
+ * （"[問い合わせ]" / "[サブクエリ]"）を、現在 locale の表記に変換する。
+ * テーブル名・CTE名等の動的タイトルはそのまま返す。
+ */
+function translateTitle(title: string, t: Messages): string {
+  if (title === '[問い合わせ]') return t.node.queryPlaceholderTitle;
+  if (title === '[サブクエリ]') return t.node.subqueryPlaceholderTitle;
+  return title;
+}
 
 /**
  * クエリ全体ノード — クエリ1つを表す最外殻ノード。
@@ -29,6 +42,7 @@ function QueryBoxNodeComponent({ data, id }: NodeProps) {
 
   const toggleDisplayMode = useFlowStore((s) => s.toggleDisplayMode);
   const syncNodeDimensions = useFlowStore((s) => s.syncNodeDimensions);
+  const { t } = useLocale();
 
   const handleToggle = useCallback(() => {
     toggleDisplayMode(id);
@@ -52,7 +66,7 @@ function QueryBoxNodeComponent({ data, id }: NodeProps) {
         <Handle type="target" position={Position.Left} className={styles.handle} />
         <div className={styles.omittedBody}>
           <span className={styles.omittedMessage}>
-            {omitMessage ?? '...（省略）'}
+            {omitMessage ?? t.node.omittedNested}
           </span>
         </div>
         <Handle type="source" position={Position.Right} className={styles.handle} />
@@ -80,9 +94,9 @@ function QueryBoxNodeComponent({ data, id }: NodeProps) {
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        title={displayMode === 'compact' ? 'クリックで詳細表示' : 'クリックでコンパクト表示'}
+        title={displayMode === 'compact' ? t.node.clickToDetail : t.node.clickToCompact}
       >
-        <span className={styles.title}>{title}</span>
+        <span className={styles.title}>{translateTitle(title, t)}</span>
         <span className={styles.badge}>
           {queryType === 'ctas' ? 'CTAS' : 'SELECT'}
         </span>
