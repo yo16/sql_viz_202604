@@ -17,6 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useFlowStore } from '@/stores/flowStore';
 import { useLineageHighlight } from '@/hooks/useLineageHighlight';
+import { useLocale } from '@/i18n/useLocale';
 import { QueryBoxNode } from './nodes/QueryBoxNode';
 import { ClauseBoxNode } from './nodes/ClauseBoxNode';
 import { ColumnItemNode } from './nodes/ColumnItemNode';
@@ -68,6 +69,7 @@ export function FlowCanvas() {
   const expandAll = useFlowStore((s) => s.expandAll);
   const compactAll = useFlowStore((s) => s.compactAll);
   const syncNodePosition = useFlowStore((s) => s.syncNodePosition);
+  const { t } = useLocale();
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -99,19 +101,19 @@ export function FlowCanvas() {
           type="button"
           className={styles.viewButton}
           onClick={expandAll}
-          aria-label="全部開く"
-          title="全部開く"
+          aria-label={t.button.expandAll}
+          title={t.button.expandAll}
         >
-          全部開く
+          {t.button.expandAll}
         </button>
         <button
           type="button"
           className={styles.viewButton}
           onClick={compactAll}
-          aria-label="全部閉じる"
-          title="全部閉じる"
+          aria-label={t.button.collapseAll}
+          title={t.button.collapseAll}
         >
-          全部閉じる
+          {t.button.collapseAll}
         </button>
       </div>
       <ReactFlow
