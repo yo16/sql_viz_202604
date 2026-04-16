@@ -10,6 +10,7 @@
 | [レイアウトエンジン設計](./layout-engine.md) | 親ノード動的サイズ計算、ボトムアップ再帰レイアウト、レイアウト定数 |
 | [リネージュデータモデル設計](./lineage-model.md) | TableNode/ColumnNode/ColumnDependency 型定義、AST変換パイプライン、SELECT * 伝播、リネージュ追跡 |
 | [カラム推定エッジケース](./column-inference-edge-cases.md) | 未登録テーブルのカラム推定における8つのエッジケースと対処方針 |
+| [多言語対応設計](./i18n.md) | 日本語/英語の言語切替機構、リソース構造、自動判定、永続化、LanguageSelector、SEO metadata 固定方針 |
 
 ---
 
@@ -54,6 +55,7 @@ DWH構築時のSQLクエリ群における**カラムレベルリネージュ**�
 3. **Zustand 2ストア分離**: データモデル (lineageStore) とビュー (flowStore) を分離し、テスト容易性と将来の可視化エンジン差替え可能性を確保
 4. **レイアウトエンジン自作**: React Flow は親ノードの動的サイズ計算を提供しないため、ボトムアップ再帰計算の独自モジュールを実装
 5. **CSS Modules**: Tailwind CSS は禁止。CSS Custom Properties で統一的なデザイントークンを管理
+6. **多言語対応はクライアント状態のみ**: URL は不変（`/ja`, `/en` 等に分割しない）。locale は Zustand 独立ストア (`localeStore`) で保持し、lineage/flow ストアとは分離。i18n ライブラリ（next-intl / next-i18next 等）は採用せず、`lineageStore` / `flowStore` と同じ自前 Zustand + 自前 localStorage パターンに揃える（`persist` ミドルウェアも不使用）。SEO 観点では metadata と SSR 初期 `<html lang>` は**英語固定**とし、`<body>` 直後のインラインスクリプトが HTML パース時に `<html lang>` を確定させて FOUC を防止する。詳細は [多言語対応設計](./i18n.md) を参照
 
 ### データフロー
 
@@ -91,3 +93,4 @@ SQL入力 → POST /api/parse → ParsedQuery[]
 | F2-3 | カラムレベルリネージュ | [リネージュモデル](./lineage-model.md#6-リネージュ追跡ハイライト), [コンポーネント設計](./component-design.md#41-lineageedge) |
 | F2-4 | 未登録テーブルのカラム推定 | [カラム推定エッジケース](./column-inference-edge-cases.md), [リネージュモデル](./lineage-model.md#4-未登録テーブルのカラム推定ロジック) |
 | F2-5 | SELECT * のカラム解決 | [リネージュモデル](./lineage-model.md#3-select--伝播アルゴリズム) |
+| FI-1〜FI-7 | 多言語対応（日本語/英語切替） | [多言語対応設計](./i18n.md), [コンポーネント設計](./component-design.md#26-languageselector) |

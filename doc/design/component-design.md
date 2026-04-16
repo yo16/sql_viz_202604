@@ -6,6 +6,7 @@
 - [レイアウトエンジン設計](./layout-engine.md)
 - [リネージュデータモデル設計](./lineage-model.md)
 - [API設計](./api-design.md)
+- [多言語対応設計](./i18n.md)
 - [要件定義](../requirements-phase1-2.md)
 
 ---
@@ -18,7 +19,8 @@ app/layout.tsx (Server Component)
     └── MainView ("use client") ─────────── アプリケーションルート
         ├── Header
         │   ├── DialectSelector                 DB方言切替 [F1-1]
-        │   └── ResetButton                     全リセット [F1-7]
+        │   ├── ResetButton                     全リセット [F1-7]
+        │   └── LanguageSelector                言語切替 JA/EN [FI-1]
         │
         ├── SqlInputPanel                       SQL入力パネル [F1-1]
         │   ├── <textarea>                      直接入力
@@ -154,6 +156,54 @@ interface DialectSelectorProps {
 - lineageStore に `resetCounter: number` を持ち、`resetAll` で +1 する
 - SqlInputPanel と FileDropZone は `useLineageStore((s) => s.resetCounter)` を購読し、`useEffect([resetCounter])` 内で local state（textarea / files / error）をクリアする
 - これによりリセット後に新しいファイルを読み込んだとき、前回のファイルが再パースされる問題を防ぐ
+
+### 2.6 LanguageSelector
+
+対応要件: FI-1, FI-2, FI-3
+
+表示言語（日本語 / 英語）を切り替えるトグルUI。Header 右側（DialectSelector / ResetButton と同列）に配置する。
+言語切替機構の詳細は [多言語対応設計](./i18n.md) を参照。
+
+```typescript
+// components/ui/LanguageSelector.tsx
+"use client";
+
+// 責務（最小化）:
+// - 現在の locale を localeStore から購読し、2択（JA / EN）のトグルとして表示する [FI-1]
+// - クリックで useLocale().setLocale(next) を呼び出すのみ
+// - DOM（<html lang>）操作や localStorage 書き込みは一切行わない
+```
+
+**責務分離** (重要):
+
+| 責務 | 担当 |
+|---|---|
+| `<html lang>` の初期確定（ページロード時） | `<body>` 直後のインラインスクリプト（`app/layout.tsx`） |
+| ストア初期値の確定（hydration 後） | `LocaleBootstrap` |
+| ユーザー切替時の `<html lang>` 更新 + localStorage 保存 + ストア更新 | `localeStore.setLocale` |
+| UI 表示とクリックイベント発火のみ | `LanguageSelector` |
+
+LanguageSelector は `setLocale(next)` を呼ぶだけで、副作用（DOM 更新・永続化）は
+`localeStore.setLocale` 内部にカプセル化される。詳細は
+[多言語対応設計 §8](./i18n.md#8-html-lang-属性の切替-fi-1) を参照。
+
+**UI仕様**:
+- `JA` / `EN` の2ボタンを横並び（セグメンテッドコントロール風）
+- 選択中のボタンを強調表示（背景色 + 太字）
+- ラベル自体は両言語で同一表記（`JA` / `EN`）のため翻訳対象外（リソースキーは持つが中身は共通）
+- `aria-label` は翻訳対象（日本語: "言語", 英語: "Language"）
+- 各ボタンに `aria-pressed` を付与
+
+**初期化フロー** (FI-2, FI-3):
+- Header / LanguageSelector 自体は locale の初期化を行わない
+- `<body>` 直後のインラインスクリプトが HTML パース時に `<html lang>` を同期的に確定（FOUC 防止）
+- `app/layout.tsx` に組み込まれる `LocaleBootstrap` が hydration 後の `useEffect` で
+  `resolveInitialLocale()` を実行し、Zustand ストアの初期値を確定する（DOM は触らない）
+- LanguageSelector は初期化後のストア値を単に購読・更新するだけ
+
+**スタイリング**:
+- CSS Modules。DialectSelector に合わせた配色・サイズ感
+- Tailwind 禁止（プロジェクトルール）
 
 ---
 
