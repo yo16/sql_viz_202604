@@ -47,12 +47,14 @@ describe('app/layout metadata（英語固定）', () => {
 
   describe('twitter', () => {
     it('card が summary_large_image', () => {
-      expect(metadata.twitter?.card).toBe('summary_large_image');
+      const twitter = metadata.twitter as { card?: string };
+      expect(twitter.card).toBe('summary_large_image');
     });
 
     it('title / description が英語', () => {
-      const tTitle = metadata.twitter?.title as string;
-      const tDesc = metadata.twitter?.description as string;
+      const twitter = metadata.twitter as { title?: string; description?: string };
+      const tTitle = twitter.title as string;
+      const tDesc = twitter.description as string;
       // eslint-disable-next-line no-control-regex
       expect(tTitle).toMatch(/^[\x00-\x7F]+$/);
       // eslint-disable-next-line no-control-regex

@@ -4,6 +4,32 @@ import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-2RGNVSTMYN";
 const SITE_URL = "https://sql-viz.com";
+
+/**
+ * FOUC 防止インラインスクリプト。
+ *
+ * HTML パース中に同期実行され、React レンダリング前に `<html lang>` を確定させる。
+ * 優先順位 (doc/design/i18n.md §3.1):
+ *   1. localStorage['sql-viz-locale'] が 'ja' または 'en' → その値
+ *   2. navigator.language が 'ja' で始まる → 'ja'、それ以外 → 'en'
+ *   3. navigator 未取得時 → 'ja' (NAVIGATOR_UNAVAILABLE_FALLBACK)
+ *
+ * `resolveInitialLocale()` と同一の優先順位ロジック（二重実装、設計 §3.3）。
+ * SSR は `<html lang="en">` 固定なので、確定値が 'ja' のときのみ書き換える。
+ */
+const LOCALE_INIT_SCRIPT = `
+(function() {
+  try {
+    var saved = localStorage.getItem('sql-viz-locale');
+    var locale = (saved === 'ja' || saved === 'en') ? saved
+      : (navigator.language && navigator.language.toLowerCase().startsWith('ja') ? 'ja'
+        : (navigator.language ? 'en' : 'ja'));
+    if (locale === 'ja') {
+      document.documentElement.setAttribute('lang', 'ja');
+    }
+  } catch(e) {}
+})();
+`.trim();
 const SITE_TITLE = "SQL Lineage Viz - SQL Column Lineage Visualization Tool";
 const SITE_DESCRIPTION =
   "Visualize SQL column-level lineage on an interactive graph. Just paste your SELECT statements and the tool automatically analyzes table-to-table column dependencies, helping you understand data flow at a glance.";
@@ -81,6 +107,10 @@ export default function RootLayout({
         </Script>
       </head>
       <body>
+        <script
+          id="locale-init"
+          dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
